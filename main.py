@@ -10,12 +10,12 @@ import shelve
  
  
 #actual size of the window
-SCREEN_WIDTH = 80
-SCREEN_HEIGHT = 50
+SCREEN_WIDTH = 120
+SCREEN_HEIGHT = 80
  
 #size of the map
-MAP_WIDTH = 80
-MAP_HEIGHT = 43
+MAP_WIDTH = 120
+MAP_HEIGHT = 70
  
 #sizes and coordinates relevant for the GUI
 BAR_WIDTH = 20
@@ -453,7 +453,7 @@ def make_map():
             num_rooms += 1
  
     #create stairs at the center of the last room
-    stairs = Object(new_x, new_y, '<', 'stairs', libtcod.white, always_visible=True)
+    stairs = Object(new_x, new_y, '>', 'stairs', libtcod.white, always_visible=True)
     objects.append(stairs)
     stairs.send_to_back()  #so it's drawn below the monsters
  
@@ -792,30 +792,30 @@ def handle_keys():
         return 'exit'  #exit game
  
     if game_state == 'playing':
+    	key_char = chr(key.c)
         #movement keys
-        if key.vk == libtcod.KEY_UP or key.vk == libtcod.KEY_KP8:
+        if key.vk == libtcod.KEY_UP or key.vk == libtcod.KEY_KP8 or key_char == 'k':
             player_move_or_attack(0, -1)
-        elif key.vk == libtcod.KEY_DOWN or key.vk == libtcod.KEY_KP2:
+        elif key.vk == libtcod.KEY_DOWN or key.vk == libtcod.KEY_KP2 or key_char == 'j':
             player_move_or_attack(0, 1)
-        elif key.vk == libtcod.KEY_LEFT or key.vk == libtcod.KEY_KP4:
+        elif key.vk == libtcod.KEY_LEFT or key.vk == libtcod.KEY_KP4 or key_char == 'h':
             player_move_or_attack(-1, 0)
-        elif key.vk == libtcod.KEY_RIGHT or key.vk == libtcod.KEY_KP6:
+        elif key.vk == libtcod.KEY_RIGHT or key.vk == libtcod.KEY_KP6 or key_char == 'l':
             player_move_or_attack(1, 0)
-        elif key.vk == libtcod.KEY_HOME or key.vk == libtcod.KEY_KP7:
+        elif key.vk == libtcod.KEY_HOME or key.vk == libtcod.KEY_KP7 or key_char == 'y':
             player_move_or_attack(-1, -1)
-        elif key.vk == libtcod.KEY_PAGEUP or key.vk == libtcod.KEY_KP9:
+        elif key.vk == libtcod.KEY_PAGEUP or key.vk == libtcod.KEY_KP9 or key_char == 'u':
             player_move_or_attack(1, -1)
-        elif key.vk == libtcod.KEY_END or key.vk == libtcod.KEY_KP1:
+        elif key.vk == libtcod.KEY_END or key.vk == libtcod.KEY_KP1 or key_char == 'b':
             player_move_or_attack(-1, 1)
-        elif key.vk == libtcod.KEY_PAGEDOWN or key.vk == libtcod.KEY_KP3:
+        elif key.vk == libtcod.KEY_PAGEDOWN or key.vk == libtcod.KEY_KP3 or key_char == 'n':
             player_move_or_attack(1, 1)
-        elif key.vk == libtcod.KEY_KP5:
+        elif key.vk == libtcod.KEY_KP5 or key_char == 's' or key_char == '.':
             pass  #do nothing ie wait for the monster to come to you
         else:
             #test for other keys
-            key_char = chr(key.c)
  
-            if key_char == 'g':
+            if key_char == ',':
                 #pick up an item
                 for object in objects:  #look for an item in the player's tile
                     if object.x == player.x and object.y == player.y and object.item:
