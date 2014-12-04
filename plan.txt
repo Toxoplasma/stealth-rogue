@@ -1,0 +1,130 @@
+STEALTH ROGUE
+
+Stealth-centric roguelike
+Features:
+	stabs
+	sneaking
+	magic!
+	stealthvision, colors tiles based on chance of you being seen
+	Light mattering a lot, coloring tiles based on light
+	XP given per level reached, not for enemies killed or anything
+	drag bodies and hide them
+
+	Goal: steal the crown from the dread king Asterion
+
+
+
+skills
+	Stealth
+	Stabbing
+	Bows (long time per fire)
+	Crossbows (instant fire but must slow reload)
+	Darts?
+	Throwing knives?
+	spell schools
+	Pickpocketing
+	Lockpicking
+	Observation (seeing traps, hidden stuff)
+	Traps (setting traps)
+
+
+
+Items
+	Arrows
+		Noise arrows
+		Piercing arrows
+		Silent arrows (silence area around where they hit?)
+		Poison arrows
+		Water arrows (put out torches)
+		Sleep arrows
+
+	Misc
+		Orb of silence (silence tiles around it, could be carried or dropped)
+		Smoke bombs!
+		Torch
+		All-seeing eye (drop/throw somewhere, gain vision from it's perspective. Limited time? Lowers stealth due to distraction?)
+		caltrops
+
+
+
+	Body armor
+		Armor of darkness
+		Armor of dummies (hehehe)
+		Armor of repel missiles
+
+	Cloaks
+		Translucency cloak
+		Invisibility cloak
+	
+	Boots
+		Boots of swiftness
+		Boots of quiet
+
+	Hats
+		Hat of mind detection
+		Hat of wizardry
+
+	Gloves
+		Gloves of archery
+		Gloves of lockpicking
+		Gloves of pickpocketing
+
+	Goggles
+		See invisible
+		X-ray vision
+		Heatvision (see trails)
+
+
+
+Spells
+	Hexes
+		Silence Target
+		Blind
+		Paralyze
+		Daze
+		Confuse
+
+	Charms
+		Chameleon
+		Invisibility
+		Nightvision
+		Repel missiles
+
+	Illusions
+		Dummy (makes a fake you!)
+		Moving dummy (this one walks in a direction or randomly)
+		Fleeing dummy (leads them on a chase)
+	
+	Alterations
+		Darkness
+		Slickness (slows/trips people in an area)
+		Silence (area)
+		Extinguish
+
+	Translocations
+		Apportation
+		Blink (direction)
+		Controlled blink (crawl's)
+		Portal
+		Dummyblink (makes a dummy where you were, blinks you)
+
+	Telepathy
+		Detect mind (where are the guards?)
+		Mind-reading (see guards destinations) (maybe single target at once)
+		Distract (change destination)
+		Cloud (forget their suspisions)
+		Scry (see an area?)
+
+
+Branches
+	Main: Ozymandias castle
+	
+	Main game: dwarven halls, elven forest, gnometown, dragon's den (now with more goblins), Orc Mines, vampire tombs (with thralls!)
+
+	Postgame: Hell, heaven
+	
+	
+	
+
+
+

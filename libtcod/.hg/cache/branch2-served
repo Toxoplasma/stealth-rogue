@@ -1,0 +1,10 @@
+091673a868a0b487c6e155069ffae1a82943db7c 242
+ff47576c3bdf9548326fe8ba3d807b3ba13288d8 o 1.5.x
+091673a868a0b487c6e155069ffae1a82943db7c o default
+be079e92f3387e3ef2f2ee1b6652e74f5821c9c2 c rmtew-reentranttcod
+c93ba9d359ab093f043b5e04371aba1c99fced85 c rmtew-sdl2-noforcedqwerty
+f8f7b1e1a63497ab55a7d761b48a795982b56c68 c rmtew-sdl2-noincludesubdir
+e7e86bbd50f16473914330eae96ed36bdfc8bcf1 c rmtew-sdl2refresh
+30646e7bc99ececb155dece7bf9821899bf0eab2 c rmtew-sdl2textinputv2
+cbb5fc8f5c575e029d6c0d6936c980b9b321f1d9 c rmtew-startup-api
+420a1ebed499dd21d63907c5d57272915b4661ff c rmtew-vs2008-fix
