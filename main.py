@@ -165,20 +165,9 @@ class Object:
 		libtcod.path_compute(path, self.x, self.y, target_x, target_y)
 
 		dx, dy = libtcod.path_walk(path, True)
-		print str((self.x, self.y)) + " via " + str((dx, dy)) + " to " + str((target_x, target_y))
+		#print str((self.x, self.y)) + " via " + str((dx, dy)) + " to " + str((target_x, target_y))
 		if dx:
 			self.move(dx - self.x, dy - self.y)
-
-		# #vector from this object to the target, and distance
-		# dx = target_x - self.x
-		# dy = target_y - self.y
-		# distance = math.sqrt(dx ** 2 + dy ** 2)
- 
-		# #normalize it to length 1 (preserving direction), then round it and
-		# #convert to integer so the movement is restricted to the map grid
-		# dx = int(round(dx / distance))
-		# dy = int(round(dy / distance))
-		# self.move(dx, dy)
  
 	def distance_to(self, other):
 		#return the distance to another object
@@ -308,7 +297,8 @@ class BasicMonster:
 
 				#Send a message about it if it couldn't already see you
 				if not self.can_see_player:
-					message("The " + monster.name + " sees you!", libtcod.red)
+					if player_can_see(monster.x, monster.y):
+						message("The " + monster.name + " sees you!", libtcod.red)
 
 				self.can_see_player = True
 				self.dest = (player.x, player.y)
@@ -640,6 +630,19 @@ def place_objects(room):
 	item_chances['sword'] =     from_dungeon_level([[5, 4]])
 	item_chances['shield'] =    from_dungeon_level([[15, 8]])
  
+
+	#Dungeon features
+	num_torches = libtcod.random_get_int(0, 0, 2)
+
+	for i in range(num_torches):
+		x = libtcod.random_get_int(0, room.x1+1, room.x2-1)
+		y = libtcod.random_get_int(0, room.y1+1, room.y2-1)
+
+		torch = Object(x, y, '!', 'torch', libtcod.orange,
+				blocks=True, light_source=True, light_source_level = 10)
+
+		objects.append(torch)
+
  
 	#choose random number of monsters
 	num_monsters = libtcod.random_get_int(0, 0, max_monsters)
@@ -782,6 +785,12 @@ def BFS(x, y, xt, yt):
 	return reachable
 
 
+
+def player_can_see(x, y):
+	LOS = libtcod.map_is_in_fov(fov_map, x, y)
+	visible = LOS and ((map[x][y].light_level > MIN_TILE_LIGHT_LEVEL) or (pythdist(x, y, player.x, player.y) < VISION_DISTANCE_WITHOUT_LIGHT))
+
+	return visible
 
 def render_all():
 	global fov_map, color_dark_wall, color_light_wall
