@@ -60,7 +60,7 @@ LIGHT_MAX = 100
 MIN_ITEM_LIGHT_LEVEL = 30
 MIN_TILE_LIGHT_LEVEL = 20
 
-VISION_DISTANCE_WITHOUT_LIGHT = 5
+VISION_DISTANCE_WITHOUT_LIGHT = 4
 
 #VISION STUFF
  
@@ -188,8 +188,9 @@ class Object:
 		#only show if it's visible to the player; or it's set to "always visible" and on an explored tile
 		#print self.char + ": " + str(map[self.x][self.y].light_level)
 		#print "  fov: " + 
-		if (libtcod.map_is_in_fov(fov_map, self.x, self.y) and map[self.x][self.y].light_level > MIN_ITEM_LIGHT_LEVEL) or \
-				(self.always_visible and map[self.x][self.y].explored):
+		if (libtcod.map_is_in_fov(fov_map, self.x, self.y) and \
+				(map[self.x][self.y].light_level > MIN_ITEM_LIGHT_LEVEL) or self.distance_to(player) < VISION_DISTANCE_WITHOUT_LIGHT) or \
+			(self.always_visible and map[self.x][self.y].explored):
 			#set the color and then draw the character that represents this object at its position
 			libtcod.console_set_default_foreground(con, self.color)
 			libtcod.console_put_char(con, self.x, self.y, self.char, libtcod.BKGND_NONE)
@@ -281,9 +282,22 @@ class BasicMonster:
 		#First, does it even have LOS?
 		if libtcod.map_is_in_fov(fov_map, monster.x, monster.y):
 			#Ok, does it detect you?
-			chance = max(map[player.x][player.y].light_level - player.fighter.stealth, 0)
+
+			#Light-based contribution
+			light_chance = map[player.x][player.y].light_level - player.fighter.stealth
+
+			#Proximity
+			near_chance = (max((VISION_DISTANCE_WITHOUT_LIGHT - pythdist(player.x, player.y, monster.x, monster.y)), 0)**2) * 10 - player.fighter.stealth / 2
+
+			chance = max(light_chance, near_chance)
+			chance = max(chance, 0)
 			if randPercent(chance):
 				#It sees you!
+
+				#Send a message about it if it couldn't already see you
+				if not self.can_see_player:
+					message("The " + monster.name + " sees you!", libtcod.red)
+
 				self.can_see_player = True
 				self.dest = (player.x, player.y)
 
@@ -299,21 +313,12 @@ class BasicMonster:
 		#Have we reached destination?
 		if (monster.x == self.dest[0] and monster.y == self.dest[1]) or \
 			(self.dest == (-1, -1)):
+			#If we could see the player before, mark it as not true anymore
+			self.can_see_player = False
+
 			#Pick a new destination at random (from within sight)
 			newx, newy = rand_tile_in_sight(monster.x, monster.y)
 			self.dest = (newx, newy)
-
-		# #a basic monster takes its turn. if you can see it, it can see you
-		# monster = self.owner
-		# if libtcod.map_is_in_fov(fov_map, monster.x, monster.y):
- 
-		# 	#move towards player if far away
-		# 	if monster.distance_to(player) >= 2:
-		# 		monster.move_towards(player.x, player.y)
- 
-		# 	#close enough, attack! (if the player is still alive.)
-		# 	elif player.fighter.hp > 0:
-		# 		monster.fighter.attack(player)
 
 class ConfusedMonster:
 	#AI for a temporarily confused monster (reverts to previous AI after a while).
@@ -746,7 +751,7 @@ def get_names_under_mouse():
 	names = ', '.join(names)  #join the names, separated by commas
 	return names.capitalize()
  
-def BFS_sight(x, y, depth):
+def BFS(x, y, xt, yt):
 	global map
 
 	reachable = []
