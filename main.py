@@ -738,7 +738,7 @@ def render_all():
 						# #If that tile is seeable from the light source
 						if not blocked:
 							#Update it's light value!
-							map[x][y].light_level = min(LIGHT_MAX, map[x][y].light_level + 25) #Cap out at 100
+							map[x][y].light_level = min(LIGHT_MAX, map[x][y].light_level + 100/pythdist(obj.x, obj.y, x, y)) #Cap out at 100
  
 		#recompute FOV if needed (the player moved or something)
 		libtcod.map_compute_fov(fov_map, player.x, player.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGO)
