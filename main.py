@@ -8,74 +8,8 @@ import math
 import textwrap
 import shelve
  
- 
-#actual size of the window
-SCREEN_WIDTH = 120
-SCREEN_HEIGHT = 80
- 
-#size of the map
-MAP_WIDTH = 120
-MAP_HEIGHT = 70
- 
-#sizes and coordinates relevant for the GUI
-BAR_WIDTH = 20
-PANEL_HEIGHT = 7
-PANEL_Y = SCREEN_HEIGHT - PANEL_HEIGHT
-MSG_X = BAR_WIDTH + 2
-MSG_WIDTH = SCREEN_WIDTH - BAR_WIDTH - 2
-MSG_HEIGHT = PANEL_HEIGHT - 1
-INVENTORY_WIDTH = 50
-CHARACTER_SCREEN_WIDTH = 30
-LEVEL_SCREEN_WIDTH = 40
- 
-#parameters for dungeon generator
-ROOM_MAX_SIZE = 50 #15
-ROOM_MIN_SIZE = 40 #6
-MAX_ROOMS = 30
- 
-#spell values
-HEAL_AMOUNT = 40
-LIGHTNING_DAMAGE = 40
-LIGHTNING_RANGE = 5
-CONFUSE_RANGE = 8
-CONFUSE_NUM_TURNS = 10
-FIREBALL_RADIUS = 3
-FIREBALL_DAMAGE = 25
- 
-#experience and level-ups
-LEVEL_UP_BASE = 200
-LEVEL_UP_FACTOR = 150
+from consts import *
 
-#AI stuff
-MAX_MONSTER_MOVE = 10
- 
-#Light stuff
- 
-FOV_ALGO = libtcod.FOV_BASIC #libtcod.FOV_SHADOW
-FOV_LIGHT_WALLS = True  #light walls or not
-TORCH_RADIUS = 0 #infinite
-
-LIGHT_MAX = 100
-LIGHT_MIN = 0
-
-MIN_ITEM_LIGHT_LEVEL = 30
-MIN_TILE_LIGHT_LEVEL = 20
-
-VISION_DISTANCE_WITHOUT_LIGHT = 4
-
-#VISION STUFF
- 
-LIMIT_FPS = 20  #20 frames-per-second maximum
- 
-MONSTER_SEEN_COLOR = libtcod.Color(100, 0, 0)
-DARK_WALL_COLOR = (0, 0, 100)
-LIGHT_WALL_COLOR = (90, 70, 10)
-DARK_GROUND_COLOR = (50, 50, 100)
-LIGHT_GROUND_COLOR = (155, 125, 0)
-color_dark_wall = libtcod.Color
-color_light_wall = libtcod.Color
-color_dark_ground = libtcod.Color
-color_light_ground = libtcod.Color #155, 125, 0
  
  
 class Tile:
@@ -540,7 +474,7 @@ def make_map():
 		for other_room in rooms:
 			if new_room.intersect(other_room):
 				failed = True
-				break
+				#break
  
 		if not failed:
 			#this means there are no intersections, so this room is valid
@@ -632,8 +566,8 @@ def place_objects(room):
 	#chance of each item (by default they have a chance of 0 at level 1, which then goes up)
 	item_chances = {}
 	#item_chances['heal'] = 35  #healing potion always shows up, even if all other items have 0 chance
-	item_chances['light orb'] = 35
-	item_chances['dark orb'] = 35
+	item_chances['light orb'] = LIGHT_ORB_CHANCE
+	item_chances['dark orb'] = DARK_ORB_CHANCE
 	item_chances['lightning'] = from_dungeon_level([[25, 4]])
 	item_chances['fireball'] =  from_dungeon_level([[25, 6]])
 	item_chances['confuse'] =   from_dungeon_level([[10, 2]])
@@ -642,14 +576,14 @@ def place_objects(room):
  
 
 	#Dungeon features
-	num_torches = libtcod.random_get_int(0, 0, 2)
+	num_torches = libtcod.random_get_int(0, 0, 1)
 
 	for i in range(num_torches):
 		x = libtcod.random_get_int(0, room.x1+1, room.x2-1)
 		y = libtcod.random_get_int(0, room.y1+1, room.y2-1)
 
 		torch = Object(x, y, '!', 'torch', libtcod.orange,
-				blocks=True, light_source=True, light_source_level = 10)
+				blocks=True, light_source=True, light_source_level = TORCH_LSL)
 
 		objects.append(torch)
 
@@ -667,16 +601,16 @@ def place_objects(room):
 			choice = random_choice(monster_chances)
 			if choice == 'orc':
 				#create an orc
-				fighter_component = Fighter(hp=20, defense=0, power=4, xp=35, death_function=monster_death)
+				fighter_component = Fighter(hp=ORC_HP, defense=ORC_DEF, power=ORC_POW, xp=ORC_XP, death_function=monster_death)
 				ai_component = BasicMonster()
- 
+
 				monster = Object(x, y, 'o', 'orc', libtcod.green,
-								 blocks=True, light_source=True, light_source_level=8, #TODO: Add them actually carrying torches, not just lights
+								 blocks=True, light_source=True, light_source_level=ORC_LSL, #TODO: Add them actually carrying torches, not just lights
 								 fighter=fighter_component, ai=ai_component)
  
 			elif choice == 'troll':
 				#create a troll
-				fighter_component = Fighter(hp=30, defense=2, power=8, xp=100, death_function=monster_death)
+				fighter_component = Fighter(hp=TROLL_HP, defense=TROLL_DEF, power=TROLL_POW, xp=TROLL_XP, death_function=monster_death)
 				ai_component = BasicMonster()
  
 				monster = Object(x, y, 'T', 'troll', libtcod.darker_green,
@@ -1208,7 +1142,7 @@ def throw_light_orb():
  
 	#TODO: make this land a bit randomly
 	#TODO: make this stop being lit eventually
-	lit_orb = Object(x, y, '*', 'light orb', libtcod.orange, light_source = True, light_source_level = 6, )
+	lit_orb = Object(x, y, '*', 'light orb', libtcod.orange, light_source = True, light_source_level = LIGHTORB_LSL, )
 	objects.append(lit_orb)
 	lit_orb.send_to_back()
 
@@ -1224,7 +1158,7 @@ def throw_dark_orb():
  
 	#TODO: make this land a bit randomly
 	#TODO: make this stop being lit eventually
-	lit_orb = Object(x, y, '*', 'dark orb', libtcod.violet, light_source = True, light_source_level = -6, )
+	lit_orb = Object(x, y, '*', 'dark orb', libtcod.violet, light_source = True, light_source_level = DARKORB_LSL, )
 	objects.append(lit_orb)
 	lit_orb.send_to_back()
 
@@ -1410,7 +1344,7 @@ def play_game():
 			for object in objects:
 				if object.ai:
 					object.ai.take_turn()
-					update_lights() #THIS IS GOOD, BUT SLOWS THE GAME DOWN
+					#update_lights() #THIS IS GOOD, BUT SLOWS THE GAME DOWN
 					fov_recompute = True
 
  
@@ -1424,8 +1358,8 @@ def main_menu():
 		#show the game's title, and some credits!
 		libtcod.console_set_default_foreground(0, libtcod.light_yellow)
 		libtcod.console_print_ex(0, SCREEN_WIDTH/2, SCREEN_HEIGHT/2-4, libtcod.BKGND_NONE, libtcod.CENTER,
-								 'TOMBS OF THE ANCIENT KINGS')
-		libtcod.console_print_ex(0, SCREEN_WIDTH/2, SCREEN_HEIGHT-2, libtcod.BKGND_NONE, libtcod.CENTER, 'By Jotaf')
+								 'Steal all that junk!')
+		libtcod.console_print_ex(0, SCREEN_WIDTH/2, SCREEN_HEIGHT-2, libtcod.BKGND_NONE, libtcod.CENTER, 'By Toxy')
  
 		#show options and wait for the player's choice
 		choice = menu('', ['Play a new game', 'Continue last game', 'Quit'], 24)
@@ -1443,7 +1377,7 @@ def main_menu():
 		elif choice == 2:  #quit
 			break
  
-libtcod.console_set_custom_font('arial10x10.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
+libtcod.console_set_custom_font('arial12x12.png', libtcod.FONT_TYPE_GREYSCALE | libtcod.FONT_LAYOUT_TCOD)
 libtcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT, 'python/libtcod tutorial', False)
 libtcod.sys_set_fps(LIMIT_FPS)
 con = libtcod.console_new(MAP_WIDTH, MAP_HEIGHT)
