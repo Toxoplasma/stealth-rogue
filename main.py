@@ -57,6 +57,9 @@ TORCH_RADIUS = 0 #infinite
 
 LIGHT_MAX = 100
 
+MIN_ITEM_LIGHT_LEVEL = 30
+MIN_TILE_LIGHT_LEVEL = 20
+
 VISION_DISTANCE_WITHOUT_LIGHT = 5
 
 #VISION STUFF
@@ -183,11 +186,19 @@ class Object:
  
 	def draw(self):
 		#only show if it's visible to the player; or it's set to "always visible" and on an explored tile
-		if (libtcod.map_is_in_fov(fov_map, self.x, self.y) or
-				(self.always_visible and map[self.x][self.y].explored)):
+		#print self.char + ": " + str(map[self.x][self.y].light_level)
+		#print "  fov: " + 
+		if (libtcod.map_is_in_fov(fov_map, self.x, self.y) and map[self.x][self.y].light_level > MIN_ITEM_LIGHT_LEVEL) or \
+				(self.always_visible and map[self.x][self.y].explored):
 			#set the color and then draw the character that represents this object at its position
 			libtcod.console_set_default_foreground(con, self.color)
 			libtcod.console_put_char(con, self.x, self.y, self.char, libtcod.BKGND_NONE)
+
+	#Draws it without caring about light, etc
+	#Basically just for the player
+	def draw_always(self):
+		libtcod.console_set_default_foreground(con, self.color)
+		libtcod.console_put_char(con, self.x, self.y, self.char, libtcod.BKGND_NONE)
  
 	def clear(self):
 		#erase the character that represents this object
@@ -425,8 +436,6 @@ def pythdist(x1, y1, x2, y2):
 def rand_tile_in_sight(x, y):
 	global map
 
-	print "x, y: " + str((x, y))
-
 	startx = max(x - MAX_MONSTER_MOVE, 0)
 	starty = max(y - MAX_MONSTER_MOVE, 0)
 	endx = min(x + MAX_MONSTER_MOVE + 1, MAP_WIDTH)
@@ -444,8 +453,6 @@ def rand_tile_in_sight(x, y):
 	while ((tx == x) and (ty == y)) or invalidChoice(tx, ty):
 		tx = libtcod.random_get_int(0, startx, endx)
 		ty = libtcod.random_get_int(0, starty, endy)
-
-		print "Trying " + str((tx, ty))
 
 	return (tx, ty)
 
@@ -814,7 +821,8 @@ def render_all():
 						# #If that tile is seeable from the light source
 						if not blocked:
 							#Update it's light value!
-							map[x][y].light_level = min(LIGHT_MAX, map[x][y].light_level + int(100/(pythdist(obj.x, obj.y, x, y) + 1))) #Cap out at 100
+							map[x][y].light_level = min(LIGHT_MAX, map[x][y].light_level + 
+									int(100 - (100/obj.light_source_level) * pythdist(obj.x, obj.y, x, y))) #Cap out at 100
  
 		#recompute FOV if needed (the player moved or something)
 		libtcod.map_compute_fov(fov_map, player.x, player.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGO)
@@ -823,7 +831,7 @@ def render_all():
 		for y in range(MAP_HEIGHT):
 			for x in range(MAP_WIDTH):
 				LOS = libtcod.map_is_in_fov(fov_map, x, y)
-				visible = LOS and ((map[x][y].light_level > 20) or (pythdist(x, y, player.x, player.y) < VISION_DISTANCE_WITHOUT_LIGHT))
+				visible = LOS and ((map[x][y].light_level > MIN_TILE_LIGHT_LEVEL) or (pythdist(x, y, player.x, player.y) < VISION_DISTANCE_WITHOUT_LIGHT))
 				wall = map[x][y].block_sight
 				if not visible:
 					#if it's not visible right now, the player can only see it if it's explored
@@ -853,7 +861,7 @@ def render_all():
 	for object in objects:
 		if object != player:
 			object.draw()
-	player.draw()
+	player.draw_always()
  
 	#blit the contents of "con" to the root console
 	libtcod.console_blit(con, 0, 0, MAP_WIDTH, MAP_HEIGHT, 0, 0, 0)
