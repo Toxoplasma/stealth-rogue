@@ -56,6 +56,7 @@ FOV_LIGHT_WALLS = True  #light walls or not
 TORCH_RADIUS = 0 #infinite
 
 LIGHT_MAX = 100
+LIGHT_MIN = 0
 
 MIN_ITEM_LIGHT_LEVEL = 30
 MIN_TILE_LIGHT_LEVEL = 20
@@ -66,6 +67,7 @@ VISION_DISTANCE_WITHOUT_LIGHT = 4
  
 LIMIT_FPS = 20  #20 frames-per-second maximum
  
+MONSTER_SEEN_COLOR = libtcod.Color(100, 0, 0)
 DARK_WALL_COLOR = (0, 0, 100)
 LIGHT_WALL_COLOR = (90, 70, 10)
 DARK_GROUND_COLOR = (50, 50, 100)
@@ -193,7 +195,13 @@ class Object:
 				(map[self.x][self.y].light_level > MIN_ITEM_LIGHT_LEVEL) or self.distance_to(player) < VISION_DISTANCE_WITHOUT_LIGHT) or \
 			(self.always_visible and map[self.x][self.y].explored):
 			#set the color and then draw the character that represents this object at its position
+			if self.ai and self.ai.can_see_player:
+				#Draw the background in red!
+				libtcod.console_set_char_background(con, self.x, self.y, MONSTER_SEEN_COLOR, libtcod.BKGND_SET)
+
 			libtcod.console_set_default_foreground(con, self.color)
+			#darken the background a little
+			libtcod.console_set_char_background(con, self.x, self.y, libtcod.Color(128,128,128), libtcod.BKGND_OVERLAY)
 			libtcod.console_put_char(con, self.x, self.y, self.char, libtcod.BKGND_NONE)
 
 	#Draws it without caring about light, etc
@@ -619,11 +627,13 @@ def place_objects(room):
 	monster_chances['troll'] = from_dungeon_level([[15, 3], [30, 5], [60, 7]])
  
 	#maximum number of items per room
-	max_items = from_dungeon_level([[1, 1], [2, 4]])
+	max_items = from_dungeon_level([[4, 1], [2, 4]])
  
 	#chance of each item (by default they have a chance of 0 at level 1, which then goes up)
 	item_chances = {}
-	item_chances['heal'] = 35  #healing potion always shows up, even if all other items have 0 chance
+	#item_chances['heal'] = 35  #healing potion always shows up, even if all other items have 0 chance
+	item_chances['light orb'] = 35
+	item_chances['dark orb'] = 35
 	item_chances['lightning'] = from_dungeon_level([[25, 4]])
 	item_chances['fireball'] =  from_dungeon_level([[25, 6]])
 	item_chances['confuse'] =   from_dungeon_level([[10, 2]])
@@ -660,7 +670,7 @@ def place_objects(room):
 				fighter_component = Fighter(hp=20, defense=0, power=4, xp=35, death_function=monster_death)
 				ai_component = BasicMonster()
  
-				monster = Object(x, y, 'o', 'orc', libtcod.desaturated_green,
+				monster = Object(x, y, 'o', 'orc', libtcod.green,
 								 blocks=True, light_source=True, light_source_level=8, #TODO: Add them actually carrying torches, not just lights
 								 fighter=fighter_component, ai=ai_component)
  
@@ -685,10 +695,20 @@ def place_objects(room):
 		#only place it if the tile is not blocked
 		if not is_blocked(x, y):
 			choice = random_choice(item_chances)
-			if choice == 'heal':
-				#create a healing potion
-				item_component = Item(use_function=cast_heal)
-				item = Object(x, y, '!', 'healing potion', libtcod.violet, item=item_component)
+			# if choice == 'heal':
+			# 	#create a healing potion
+			# 	item_component = Item(use_function=cast_heal)
+			# 	item = Object(x, y, '!', 'healing potion', libtcod.violet, item=item_component)
+			if choice == 'light orb':
+				#Create a throwable light orb!
+				item_component = Item(use_function=throw_light_orb)
+				item = Object(x, y, '*', 'light orb', libtcod.light_sky, item=item_component)
+
+			elif choice == 'dark orb':
+				#Create a throwable light orb!
+				item_component = Item(use_function=throw_dark_orb)
+				item = Object(x, y, '*', 'dark orb', libtcod.dark_blue, item=item_component)
+
  
 			elif choice == 'lightning':
 				#create a lightning bolt scroll
@@ -792,12 +812,56 @@ def player_can_see(x, y):
 
 	return visible
 
+def update_lights():
+	global map, fov_map, objects
+
+	#Reset them
+	for x in range(MAP_WIDTH):
+		for y in range(MAP_HEIGHT):
+			map[x][y].light_level = 0
+
+	#For every light source...
+	for obj in objects:
+		if obj.light_source:
+			LSL = obj.light_source_level
+
+			#Calculate a new fov map from that location
+			startx = max(obj.x - abs(LSL), 0)
+			starty = max(obj.y - abs(LSL), 0)
+			endx = min(obj.x + abs(LSL) + 1, MAP_WIDTH)
+			endy = min(obj.y + abs(LSL) + 1, MAP_HEIGHT)
+
+			obj_fov_map = copy_submap_to_fov_map(startx, starty, endx - startx, endy - starty)
+			libtcod.map_compute_fov(obj_fov_map, obj.x - startx, obj.y - starty, abs(LSL), FOV_LIGHT_WALLS, FOV_ALGO)
+
+			#Get distance to each tile
+			for y in range(starty, endy):
+				for x in range(startx, endx):
+					blocked = not libtcod.map_is_in_fov(obj_fov_map, x - startx, y - starty)
+					# #If that tile is seeable from the light source
+					if not blocked:
+						#Update it's light value!
+						oldL = map[x][y].light_level
+						sign = math.copysign(1, LSL)
+						newL = oldL + int(sign * (100 - (100/abs(LSL)) * pythdist(obj.x, obj.y, x, y)))
+						map[x][y].light_level = newL
+
+	#Bound everything
+	for x in range(MAP_WIDTH):
+		for y in range(MAP_HEIGHT):
+			oldL = map[x][y].light_level
+			newL = min(LIGHT_MAX, oldL)
+			newL = max(LIGHT_MIN, newL)
+			map[x][y].light_level = newL
+
+
+def update_fov():
+	libtcod.map_compute_fov(fov_map, player.x, player.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGO)
+
 def render_all():
-	global fov_map, color_dark_wall, color_light_wall
-	global color_dark_ground, color_light_ground
+	global fov_map
 	global fov_recompute
 	global objects
-	global fov_maps
 	global map
 
 	if fov_recompute:
@@ -805,38 +869,11 @@ def render_all():
 
 
 		#Compute light levels
+		update_lights()
 		
-		#Reset them
-		for x in range(MAP_WIDTH):
-			for y in range(MAP_HEIGHT):
-				map[x][y].light_level = 0
-
-		#For every light source...
-		for obj in objects:
-			if obj.light_source:
-				#Calculate a new fov map from that location
-				startx = max(obj.x - obj.light_source_level, 0)
-				starty = max(obj.y - obj.light_source_level, 0)
-				endx = min(obj.x + obj.light_source_level + 1, MAP_WIDTH)
-				endy = min(obj.y + obj.light_source_level + 1, MAP_HEIGHT)
-
-				obj_fov_map = copy_submap_to_fov_map(startx, starty, endx - startx, endy - starty)
-				libtcod.map_compute_fov(obj_fov_map, obj.x - startx, obj.y - starty, obj.light_source_level, FOV_LIGHT_WALLS, FOV_ALGO)
-
-				#Get distance to each tile
-				#TODO: only make this do edges instead of the whole thing
-				#TODO: test out making a small submap of the region, running that through map_compute_fov
-				for y in range(starty, endy):
-					for x in range(startx, endx):
-						blocked = not libtcod.map_is_in_fov(obj_fov_map, x - startx, y - starty)
-						# #If that tile is seeable from the light source
-						if not blocked:
-							#Update it's light value!
-							map[x][y].light_level = min(LIGHT_MAX, map[x][y].light_level + 
-									int(100 - (100/obj.light_source_level) * pythdist(obj.x, obj.y, x, y))) #Cap out at 100
  
 		#recompute FOV if needed (the player moved or something)
-		libtcod.map_compute_fov(fov_map, player.x, player.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGO)
+		update_fov()
  
 		#go through all tiles, and set their background color according to the FOV
 		for y in range(MAP_HEIGHT):
@@ -1160,6 +1197,39 @@ def closest_monster(max_range):
 				closest_dist = dist
 	return closest_enemy
  
+
+def throw_light_orb():
+	global objects, fov_recompute
+	#Create a puddle of light around it
+	message('Left-click a target tile for the light orb, or right-click to cancel.', libtcod.light_cyan)
+	(x, y) = target_tile()
+	if x is None: return 'cancelled'
+	message('The light orb bursts into magical fire as it lands on the ground!', libtcod.orange)
+ 
+	#TODO: make this land a bit randomly
+	#TODO: make this stop being lit eventually
+	lit_orb = Object(x, y, '*', 'light orb', libtcod.orange, light_source = True, light_source_level = 6, )
+	objects.append(lit_orb)
+	lit_orb.send_to_back()
+
+	fov_recompute = True
+
+def throw_dark_orb():
+	global objects, fov_recompute
+	#Create a puddle of light around it
+	message('Left-click a target tile for the dark orb, or right-click to cancel.', libtcod.light_cyan)
+	(x, y) = target_tile()
+	if x is None: return 'cancelled'
+	message('The temperature drops as the orb begins to absorb light!', libtcod.light_violet)
+ 
+	#TODO: make this land a bit randomly
+	#TODO: make this stop being lit eventually
+	lit_orb = Object(x, y, '*', 'dark orb', libtcod.violet, light_source = True, light_source_level = -6, )
+	objects.append(lit_orb)
+	lit_orb.send_to_back()
+
+	fov_recompute = True
+
 def cast_heal():
 	#heal the player
 	if player.fighter.hp == player.fighter.max_hp:
@@ -1331,12 +1401,16 @@ def play_game():
 		if player_action == 'exit':
 			save_game()
 			break
+
+		#Update FOV after moving
+		update_fov()
  
 		#let monsters take their turn
 		if game_state == 'playing' and player_action != 'didnt-take-turn':
 			for object in objects:
 				if object.ai:
 					object.ai.take_turn()
+					update_lights() #THIS IS GOOD, BUT SLOWS THE GAME DOWN
 					fov_recompute = True
 
  
