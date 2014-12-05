@@ -29,8 +29,8 @@ CHARACTER_SCREEN_WIDTH = 30
 LEVEL_SCREEN_WIDTH = 40
  
 #parameters for dungeon generator
-ROOM_MAX_SIZE = 15
-ROOM_MIN_SIZE = 6
+ROOM_MAX_SIZE = 50 #15
+ROOM_MIN_SIZE = 40 #6
 MAX_ROOMS = 30
  
 #spell values
@@ -45,6 +45,9 @@ FIREBALL_DAMAGE = 25
 #experience and level-ups
 LEVEL_UP_BASE = 200
 LEVEL_UP_FACTOR = 150
+
+#AI stuff
+MAX_MONSTER_MOVE = 10
  
 #Light stuff
  
@@ -55,6 +58,8 @@ TORCH_RADIUS = 0 #infinite
 LIGHT_MAX = 100
 
 VISION_DISTANCE_WITHOUT_LIGHT = 5
+
+#VISION STUFF
  
 LIMIT_FPS = 20  #20 frames-per-second maximum
  
@@ -191,12 +196,13 @@ class Object:
  
 class Fighter:
 	#combat-related properties and methods (monster, player, NPC).
-	def __init__(self, hp, defense, power, xp, death_function=None):
+	def __init__(self, hp, defense, power, xp, stealth=0, death_function=None):
 		self.base_max_hp = hp
 		self.hp = hp
 		self.base_defense = defense
 		self.base_power = power
 		self.xp = xp
+		self.base_stealth = stealth
 		self.death_function = death_function
  
 	@property
@@ -213,6 +219,11 @@ class Fighter:
 	def max_hp(self):  #return actual max_hp, by summing up the bonuses from all equipped items
 		bonus = sum(equipment.max_hp_bonus for equipment in get_all_equipped(self.owner))
 		return self.base_max_hp + bonus
+
+	@property
+	def stealth(self):
+		bonus = sum(equipment.stealth_bonus for equipment in get_all_equipped(self.owner))
+		return self.base_stealth + bonus
  
 	def attack(self, target):
 		#a simple formula for attack damage
@@ -246,19 +257,52 @@ class Fighter:
 			self.hp = self.max_hp
  
 class BasicMonster:
+	def __init__(self):
+		self.can_see_player = False
+		self.dest = (-1, -1) #(self.owner.x, self.owner.y)
+
 	#AI for a basic monster.
 	def take_turn(self):
-		#a basic monster takes its turn. if you can see it, it can see you
 		monster = self.owner
+
+		##Check if it can see you!
+
+		#First, does it even have LOS?
 		if libtcod.map_is_in_fov(fov_map, monster.x, monster.y):
+			#Ok, does it detect you?
+			chance = max(map[player.x][player.y].light_level - player.fighter.stealth, 0)
+			if randPercent(chance):
+				#It sees you!
+				self.can_see_player = True
+				self.dest = (player.x, player.y)
+
+
+		#If we're next to the player, attack it
+		if self.can_see_player and (monster.distance_to(player) < 2):
+			monster.fighter.attack(player)
+
+		#Otherwise move towards dest
+		else:
+			monster.move_towards(self.dest[0], self.dest[1])
+
+		#Have we reached destination?
+		if (monster.x == self.dest[0] and monster.y == self.dest[1]) or \
+			(self.dest == (-1, -1)):
+			#Pick a new destination at random (from within sight)
+			newx, newy = rand_tile_in_sight(monster.x, monster.y)
+			self.dest = (newx, newy)
+
+		# #a basic monster takes its turn. if you can see it, it can see you
+		# monster = self.owner
+		# if libtcod.map_is_in_fov(fov_map, monster.x, monster.y):
  
-			#move towards player if far away
-			if monster.distance_to(player) >= 2:
-				monster.move_towards(player.x, player.y)
+		# 	#move towards player if far away
+		# 	if monster.distance_to(player) >= 2:
+		# 		monster.move_towards(player.x, player.y)
  
-			#close enough, attack! (if the player is still alive.)
-			elif player.fighter.hp > 0:
-				monster.fighter.attack(player)
+		# 	#close enough, attack! (if the player is still alive.)
+		# 	elif player.fighter.hp > 0:
+		# 		monster.fighter.attack(player)
 
 class ConfusedMonster:
 	#AI for a temporarily confused monster (reverts to previous AI after a while).
@@ -322,10 +366,11 @@ class Item:
  
 class Equipment:
 	#an object that can be equipped, yielding bonuses. automatically adds the Item component.
-	def __init__(self, slot, power_bonus=0, defense_bonus=0, max_hp_bonus=0):
+	def __init__(self, slot, power_bonus=0, defense_bonus=0, stealth_bonus=0, max_hp_bonus=0):
 		self.power_bonus = power_bonus
 		self.defense_bonus = defense_bonus
 		self.max_hp_bonus = max_hp_bonus
+		self.stealth_bonus = stealth_bonus
  
 		self.slot = slot
 		self.is_equipped = False
@@ -370,8 +415,39 @@ def get_all_equipped(obj):  #returns a list of equipped items
 		return []  #other objects have no equipment
  
  
+#Returns true if under chance
+def randPercent(chance):
+	return libtcod.random_get_int(0, 0, 99) < chance
+
 def pythdist(x1, y1, x2, y2):
 	return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
+
+def rand_tile_in_sight(x, y):
+	global map
+
+	print "x, y: " + str((x, y))
+
+	startx = max(x - MAX_MONSTER_MOVE, 0)
+	starty = max(y - MAX_MONSTER_MOVE, 0)
+	endx = min(x + MAX_MONSTER_MOVE + 1, MAP_WIDTH)
+	endy = min(y + MAX_MONSTER_MOVE + 1, MAP_HEIGHT)
+
+	obj_fov_map = copy_submap_to_fov_map(startx, starty, endx - startx, endy - starty)
+	libtcod.map_compute_fov(obj_fov_map, x - startx, y - starty, MAX_MONSTER_MOVE, FOV_LIGHT_WALLS, FOV_ALGO)
+
+	def invalidChoice(x_, y_):
+		return (not libtcod.map_is_in_fov(obj_fov_map, x_ - startx, y_ - starty)) or map[x_][y_].blocked
+
+	#Now pick a random spot from within sight of that
+	tx = x
+	ty = y
+	while ((tx == x) and (ty == y)) or invalidChoice(tx, ty):
+		tx = libtcod.random_get_int(0, startx, endx)
+		ty = libtcod.random_get_int(0, starty, endy)
+
+		print "Trying " + str((tx, ty))
+
+	return (tx, ty)
 
 def is_blocked(x, y):
 	#first test the map tile
