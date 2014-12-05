@@ -157,16 +157,28 @@ class Object:
 			self.y += dy
  
 	def move_towards(self, target_x, target_y):
-		#vector from this object to the target, and distance
-		dx = target_x - self.x
-		dy = target_y - self.y
-		distance = math.sqrt(dx ** 2 + dy ** 2)
+		global fov_map
+		#Do some pathfinding
+		path = libtcod.path_new_using_map(fov_map)
+		#dijkstra_new(map, diagonalCost=1.41)
+
+		libtcod.path_compute(path, self.x, self.y, target_x, target_y)
+
+		dx, dy = libtcod.path_walk(path, True)
+		print str((self.x, self.y)) + " via " + str((dx, dy)) + " to " + str((target_x, target_y))
+		if dx:
+			self.move(dx - self.x, dy - self.y)
+
+		# #vector from this object to the target, and distance
+		# dx = target_x - self.x
+		# dy = target_y - self.y
+		# distance = math.sqrt(dx ** 2 + dy ** 2)
  
-		#normalize it to length 1 (preserving direction), then round it and
-		#convert to integer so the movement is restricted to the map grid
-		dx = int(round(dx / distance))
-		dy = int(round(dy / distance))
-		self.move(dx, dy)
+		# #normalize it to length 1 (preserving direction), then round it and
+		# #convert to integer so the movement is restricted to the map grid
+		# dx = int(round(dx / distance))
+		# dy = int(round(dy / distance))
+		# self.move(dx, dy)
  
 	def distance_to(self, other):
 		#return the distance to another object
@@ -501,7 +513,7 @@ def create_v_tunnel(y1, y2, x):
  
 def make_map():
 	global map, objects, stairs
-	global fov_maps
+	global fov_map
  
 	#the list of objects with just the player
 	objects = [player]
@@ -569,27 +581,12 @@ def make_map():
 			rooms.append(new_room)
 			num_rooms += 1
 
-	#Build FOV Maps: SO GODDAMN SLOW
- 	# fov_maps = dict()
- 	# #Loop through every tile, build the FOV from that tile, store in fov_maps
- 	# for y in range(MAP_HEIGHT):
- 	# 	print "Computing fov_maps for row " + str(y) + "..."
-
- 	# 	#Init that row in fov_maps
- 	# 	fov_maps[y] = dict()
- 	# 	for x in range(MAP_WIDTH):
- 	# 		tile_fov_map = copy_map_to_fov_map()
-		# 	libtcod.map_compute_fov(tile_fov_map, x, y, 0, FOV_LIGHT_WALLS, FOV_ALGO) #Possibly use 0 for radius, might be too slow
-
-		# 	#Store in fov maps
-		# 	fov_maps[y][x] = tile_fov_map
-
-
-
 	#create stairs at the center of the last room
 	stairs = Object(new_x, new_y, '>', 'stairs', libtcod.white, always_visible=True)
 	objects.append(stairs)
 	stairs.send_to_back()  #so it's drawn below the monsters
+
+	fov_map = copy_map_to_fov_map()
  
 def random_choice_index(chances):  #choose one option from list of chances, returning its index
 	#the dice will land on some number between 1 and the sum of the chances
