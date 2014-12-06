@@ -128,7 +128,7 @@ ORB_GOBLIN_POW = 3
 ORB_GOBLIN_DEF = 0
 ORB_GOBLIN_XP = 45
 ORB_GOBLIN_COLOR = libtcod.desaturated_blue
-
+ORB_GOBLIN_THROW_RATE = 50
 
 ##Orcs
 ORC_CHANCE = [[80, 1]]

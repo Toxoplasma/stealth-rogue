@@ -339,6 +339,7 @@ class LightOrbThrowerMonster:
 	def __init__(self):
 		self.can_see_player = False
 		self.dest = (-1, -1) #(self.owner.x, self.owner.y)
+		self.last_throw = -100
 
 	#AI for a basic monster.
 	def take_turn(self):
@@ -361,17 +362,20 @@ class LightOrbThrowerMonster:
 		elif could_see_player: #It couldn't see you, so it tries to throw an orb
 			self.can_see_player = False
 
-			message("The " + monster.name + " throws a light orb!", libtcod.red)
-			
-			#Throw an orb at destination
-			orb_ai = LightDarkOrb(LIGHT_ORB_TICK_TIME)
-			lit_orb = Object(monster.x, monster.y, '*', 'light orb', LIGHT_ORB_THROWN_COLOR, 
-					light_source = True, light_source_level = LIGHT_ORB_LSL, ai = orb_ai)
-			throw_object(lit_orb, monster.x, monster.y, self.dest[0], self.dest[1])
-			objects.append(lit_orb)
-			lit_orb.send_to_back()
+			if time > self.last_throw + ORB_GOBLIN_THROW_RATE:
+				message("The " + monster.name + " throws a light orb!", libtcod.red)
+				
+				#Throw an orb at destination
+				orb_ai = LightDarkOrb(LIGHT_ORB_TICK_TIME)
+				lit_orb = Object(monster.x, monster.y, '*', 'light orb', LIGHT_ORB_THROWN_COLOR, 
+						light_source = True, light_source_level = LIGHT_ORB_LSL, ai = orb_ai)
+				throw_object(lit_orb, monster.x, monster.y, self.dest[0], self.dest[1])
+				objects.append(lit_orb)
+				lit_orb.send_to_back()
 
-			qinsert(lit_orb, time + LIGHT_ORB_TICK_TIME)
+				qinsert(lit_orb, time + LIGHT_ORB_TICK_TIME)
+
+				self.last_throw = time
 
 		#If we're next to the player, attack it
 		if self.can_see_player and (monster.distance_to(player) < 2):
