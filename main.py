@@ -358,8 +358,8 @@ class LightOrbThrowerMonster:
 				if player_can_see(monster.x, monster.y):
 					message("The " + monster.name + " sees you!", libtcod.red)
 
-				self.can_see_player = True
-				self.dest = (player.x, player.y)
+			self.can_see_player = True
+			self.dest = (player.x, player.y)
 
 		elif could_see_player: #It couldn't see you, so it tries to throw an orb
 			self.can_see_player = False
@@ -395,10 +395,10 @@ class LightOrbThrowerMonster:
 		if (monster.x == self.dest[0] and monster.y == self.dest[1]) or \
 			(self.dest == (-1, -1)):
 			#If we could see the player before, mark it as not true anymore
-			self.can_see_player = False
 
 			#Pick a new destination at random (from within sight)
-			newx, newy = rand_tile_in_sight(monster.x, monster.y)
+			#These guys don't carry torches, so bias towards light
+			newx, newy = rand_tile_in_sight_light_bias(monster.x, monster.y)
 			self.dest = (newx, newy)
 
 		return actiontime
@@ -539,6 +539,29 @@ def rand_gauss(mu, sigma):
 def rand_gauss_pos(mu, sigma):
 	return max(0, int(random.gauss(mu, sigma)))
 
+
+def rand_tile_in_sight_light_bias(x, y):
+	global map
+
+	startx = max(x - MAX_MONSTER_MOVE, 0)
+	starty = max(y - MAX_MONSTER_MOVE, 0)
+	endx = min(x + MAX_MONSTER_MOVE + 1, MAP_WIDTH)
+	endy = min(y + MAX_MONSTER_MOVE + 1, MAP_HEIGHT)
+
+	obj_fov_map = copy_submap_to_fov_map(startx, starty, endx - startx, endy - starty)
+	libtcod.map_compute_fov(obj_fov_map, x - startx, y - starty, MAX_MONSTER_MOVE, FOV_LIGHT_WALLS, FOV_ALGO)
+
+	def invalidChoice(x_, y_):
+		return (not libtcod.map_is_in_fov(obj_fov_map, x_ - startx, y_ - starty)) or map[x_][y_].blocked
+
+	#Now pick a random spot from within sight of that
+	chances = {}
+	for i in range (startx, endx):
+		for j in range(starty, endy):
+			if not invalidChoice(i, j):
+				chances[(i, j)] = map[i][j].light_level + 1 #do this so they don't get abandoned by orcs and have all 0s
+	
+	return random_choice(chances)
 
 def rand_tile_in_sight(x, y):
 	global map
