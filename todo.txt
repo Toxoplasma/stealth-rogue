@@ -14,16 +14,8 @@ Make movement slightly randomized
 
 Show the time somewhere
 
-Fix sight formulas to be less crap
-
 Fix enemies with torches to always compute light right after they move (currently its a turn behind them)
 	possibly negatively apply their light before they move, then positively do it after the move?
-
-Remove light orbs from everything when they go out
-
-Add a bonus if they could already see you
-
-Add a global detection formula
 
 scroll of speed
 flashbang grenades (area confuse for shorter time)

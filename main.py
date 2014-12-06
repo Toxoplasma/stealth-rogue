@@ -270,6 +270,8 @@ class Fighter:
 		if self.hp > self.max_hp:
 			self.hp = self.max_hp
  
+
+##Ais
 class BasicMonster:
 	def __init__(self):
 		self.can_see_player = False
@@ -484,6 +486,7 @@ class Equipment:
 		message('Dequipped ' + self.owner.name + ' from ' + self.slot + '.', libtcod.light_yellow)
  
 
+##Items
 class LightDarkOrb:
 	#AI for a light or dark orb, turns slowly dimmer/brighter
 	def __init__(self, tick_time):
@@ -828,11 +831,12 @@ def place_all_objects():
 	#chance of each item (by default they have a chance of 0 at level 1, which then goes up)
 	item_chances = {}
 	#item_chances['heal'] = 35  #healing potion always shows up, even if all other items have 0 chance
-	item_chances['light orb'] = from_dungeon_level(LIGHT_ORB_CHANCE)
-	item_chances['dark orb'] = from_dungeon_level(DARK_ORB_CHANCE)
+	item_chances['light orb'] = 	from_dungeon_level(LIGHT_ORB_CHANCE)
+	item_chances['dark orb'] = 		from_dungeon_level(DARK_ORB_CHANCE)
 	item_chances['water balloon'] = from_dungeon_level(WATERBALLOON_CHANCE)
-	item_chances['lightning'] = from_dungeon_level(LIGHTNING_CHANCE)
-	item_chances['confuse'] =   from_dungeon_level(CONFUSE_CHANCE)
+	item_chances['lightning'] = 	from_dungeon_level(LIGHTNING_CHANCE)
+	item_chances['confuse'] =   	from_dungeon_level(CONFUSE_CHANCE)
+	item_chances['flashbang'] = 	from_dungeon_level(FLASHBANG_CHANCE)
 	item_chances['fireball'] =  0 #from_dungeon_level([[25, 6]])
 	item_chances['sword'] =     0 #from_dungeon_level([[5, 4]])
 	item_chances['shield'] =    0 #from_dungeon_level([[15, 8]])
@@ -881,6 +885,11 @@ def place_all_objects():
 				#create a confuse scroll
 				item_component = Item(use_function=cast_confuse)
 				item = Object(x, y, '?', 'scroll of confusion', libtcod.light_yellow, item=item_component)
+
+			elif choice == 'flashbang':
+				#create a confuse scroll
+				item_component = Item(use_function=cast_flashbang)
+				item = Object(x, y, '^', 'flashbang grenade', libtcod.light_yellow, item=item_component)
  
 			elif choice == 'sword':
 				#create a sword
@@ -1578,7 +1587,23 @@ def cast_confuse():
 	monster.ai.owner = monster  #tell the new component who owns it
 	message('The eyes of the ' + monster.name + ' look vacant, as he starts to stumble around!', libtcod.light_green)
  
+def cast_flashbang():
+	#ask the player for a target tile to throw a fireball at
+	message('Left-click a target tile for the flashbang, or right-click to cancel.', libtcod.light_cyan)
+	(x, y) = target_tile()
+	if x is None: return 'cancelled'
+	message('The flashbang explodes, blinding and deafening everything within ' + str(FLASHBANG_RADIUS) + ' tiles!', libtcod.orange)
+ 
+	for obj in objects:  #damage every fighter in range, including the player
+		if obj.distance(x, y) <= FLASHBANG_RADIUS and obj.fighter and obj.ai:
+			old_ai = obj.ai
+			obj.ai = ConfusedMonster(old_ai, FLASHBANG_LENGTH)
+			obj.ai.owner = obj
 
+			message("The " + obj.name + " is dazed and confused!", libtcod.light_green)
+
+##Queue stuff
+#Insert into q at time t
 def qinsert(o, t):
 	global q
 
@@ -1588,17 +1613,20 @@ def qinsert(o, t):
 
 	q.insert(i, (o, t))
 
+#If movement ever goes wrong check this out
 def qremove(o):
 	global q
 	for i in q:
 		if i[0] == o:
 			q.remove(i)
  
+#Remove an object both from the q and from objects
 def oremove(o):
 	global q, objects
 	qremove(o)
 	objects.remove(o)
 
+##Saving and ##loading
 def save_game():
 	#open a new empty shelve (possibly overwriting an old one) to write the game data
 	file = shelve.open('savegame', 'n')
@@ -1633,6 +1661,8 @@ def load_game():
  
 	initialize_fov()
  
+
+##New game
 def new_game():
 	global player, inventory, game_msgs, game_state, dungeon_level, q, time
  
@@ -1687,7 +1717,7 @@ def next_level():
 
 		#Movement/action/event queue
 	
-
+##Fov
 def copy_submap_to_fov_map(startx, starty, width, height):
 	new_fov_map = libtcod.map_new(width, height)
 	for y in range(starty, starty + height):
@@ -1714,6 +1744,7 @@ def initialize_fov():
  
 	libtcod.console_clear(con)  #unexplored areas start black (which is the default background color)
  
+##Main game
 def play_game():
 	global key, mouse
 	global fov_recompute
