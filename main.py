@@ -508,6 +508,7 @@ class LightDarkOrb:
 
 				#Remove from everything
 				oremove(orb)
+				return -1 #don't add it to q again
 
 			orb.light_source_level = newLSL
 
@@ -515,6 +516,43 @@ class LightDarkOrb:
 
 		return self.tick_time
  
+
+##event AIs ##hidden
+class TemporarySpeedUp:
+	#AI for a temporarily confused monster (reverts to previous AI after a while).
+	def __init__(self, target, speed, tick_time, ticks):
+		self.target = target
+		self.speed = speed
+		self.tick_time = tick_time
+		self.end_ticks = ticks
+		self.ticks = 0
+
+		self.old_speed = target.fighter.base_movespeed
+
+		self.speed_diff = self.speed - self.old_speed
+		self.speed_per_tick = (1.0 * self.speed_diff) / ticks
+
+		self.can_see_player = False #urg
+
+		target.fighter.base_movespeed = self.speed
+ 
+	def take_turn(self):
+		speed = self.target.fighter.base_movespeed
+		newSpeed = speed - self.speed_per_tick
+
+		self.target.fighter.base_movespeed = newSpeed
+
+		self.ticks += 1
+
+		if self.ticks == self.end_ticks:
+			message("Your scroll of speed has worn off...")
+			#We're done, remove it
+			oremove(self.owner)
+			return -1
+
+		return self.tick_time
+
+
 def get_equipped_in_slot(slot):  #returns the equipment in a slot, or None if it's empty
 	for obj in inventory:
 		if obj.equipment and obj.equipment.slot == slot and obj.equipment.is_equipped:
@@ -837,6 +875,7 @@ def place_all_objects():
 	item_chances['lightning'] = 	from_dungeon_level(LIGHTNING_CHANCE)
 	item_chances['confuse'] =   	from_dungeon_level(CONFUSE_CHANCE)
 	item_chances['flashbang'] = 	from_dungeon_level(FLASHBANG_CHANCE)
+	item_chances['speed'] = 		from_dungeon_level(SPEED_CHANCE)
 	item_chances['fireball'] =  0 #from_dungeon_level([[25, 6]])
 	item_chances['sword'] =     0 #from_dungeon_level([[5, 4]])
 	item_chances['shield'] =    0 #from_dungeon_level([[15, 8]])
@@ -890,6 +929,11 @@ def place_all_objects():
 				#create a confuse scroll
 				item_component = Item(use_function=cast_flashbang)
 				item = Object(x, y, '^', 'flashbang grenade', libtcod.light_yellow, item=item_component)
+
+			elif choice == 'speed':
+				#create a confuse scroll
+				item_component = Item(use_function=cast_speed)
+				item = Object(x, y, '?', 'scroll of speed', libtcod.light_yellow, item=item_component)
  
 			elif choice == 'sword':
 				#create a sword
@@ -1381,6 +1425,18 @@ def check_level_up():
 		elif choice == 2:
 			player.fighter.base_defense += 1
  
+def add_highscore():
+	#Load highscores from file
+	file = shelve.open('highscores', 'n')
+	scores = file['scores']
+
+	
+	#Add our score
+	#Write them back to the file
+
+def show_highscores():
+
+
 def player_death(player):
 	#the game ended!
 	global game_state
@@ -1390,6 +1446,10 @@ def player_death(player):
 	#for added effect, transform the player into a corpse!
 	player.char = '%'
 	player.color = libtcod.dark_red
+
+	#Put their score into a high score
+	score = dungeon_level
+
  
 def monster_death(monster):
 	#transform it into a nasty corpse! it doesn't block, can't be
@@ -1602,6 +1662,19 @@ def cast_flashbang():
 
 			message("The " + obj.name + " is dazed and confused!", libtcod.light_green)
 
+def cast_speed():
+	global time
+	speed_ai = TemporarySpeedUp(player, player.fighter.base_movespeed * SPEED_MUL, SPEED_TICK_TIME, SPEED_TICK_NUM) #This changes the speed
+	speed_obj = Object(-1, -1, ' ', 'ERROR: SPEED', libtcod.white, ai = speed_ai)
+
+	objects.append(speed_obj)
+	speed_obj.send_to_back()
+
+	qinsert(speed_obj, time + SPEED_TICK_TIME)
+
+	message("You feel lightning fast!")
+
+	
 ##Queue stuff
 #Insert into q at time t
 def qinsert(o, t):
@@ -1802,7 +1875,8 @@ def play_game():
 					fov_recompute = True
 
 					#Readd to movement queue
-					qinsert(unit, time + turntime)
+					if turntime >= 0:
+						qinsert(unit, time + turntime)
 
  
 def main_menu():

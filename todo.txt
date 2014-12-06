@@ -18,7 +18,6 @@ Fix enemies with torches to always compute light right after they move (currentl
 	possibly negatively apply their light before they move, then positively do it after the move?
 
 scroll of speed
-flashbang grenades (area confuse for shorter time)
 Confuse attack eachother
 
 archer that stays in light
