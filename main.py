@@ -625,19 +625,19 @@ def place_all_objects():
 
 		if choice == 'small torch':
 			#Create a throwable light orb!
-			feat = Object(x, y, '!', 'small torch', libtcod.orange,
+			feat = Object(x, y, '!', 'small torch', TORCH_COLOR,
 				#blocks=True, 
 				light_source=True, light_source_level = SMALL_TORCH_LSL)
 
 		elif choice == 'torch':
 			#Create a throwable light orb!
-			feat = Object(x, y, '!', 'torch', libtcod.orange,
+			feat = Object(x, y, '!', 'torch', TORCH_COLOR,
 				#blocks=True, 
 				light_source=True, light_source_level = TORCH_LSL)
 
 		elif choice == 'large torch':
 			#Create a throwable light orb!
-			feat = Object(x, y, '!', 'large torch', libtcod.orange,
+			feat = Object(x, y, '!', 'large torch', TORCH_COLOR,
 				#blocks=True, 
 				light_source=True, light_source_level = LARGE_TORCH_LSL)
 
@@ -679,12 +679,12 @@ def place_all_objects():
 			if choice == 'light orb':
 				#Create a throwable light orb!
 				item_component = Item(use_function=throw_light_orb)
-				item = Object(x, y, '.', 'light orb', libtcod.light_sky, item=item_component)
+				item = Object(x, y, '.', 'light orb', LIGHT_ORB_COLOR, item=item_component)
 
 			elif choice == 'dark orb':
 				#Create a throwable light orb!
 				item_component = Item(use_function=throw_dark_orb)
-				item = Object(x, y, '.', 'dark orb', libtcod.dark_blue, item=item_component)
+				item = Object(x, y, '.', 'dark orb', DARK_ORB_COLOR, item=item_component)
 
 			elif choice == 'water balloon':
 				#Create a throwable light orb!
@@ -926,7 +926,9 @@ def render_all():
 					#it's visible
 					(r, g, b) = map[x][y].light_color
 					light = map[x][y].light_level
-					color = libtcod.Color(r + light, g + light, b + light)
+					color = libtcod.Color(int(r + R_FACTOR*light), 
+										  int(g + G_FACTOR*light), 
+										  int(b + B_FACTOR*light))
 					libtcod.console_set_char_background(con, x, y, color, libtcod.BKGND_SET)
 						#since it's visible, mark it as explored
 					map[x][y].explored = True
@@ -1203,6 +1205,25 @@ def target_tile(max_range=None):
 		if (mouse.lbutton_pressed and libtcod.map_is_in_fov(fov_map, x, y) and
 				(max_range is None or player.distance(x, y) <= max_range)):
 			return (x, y)
+
+def target_empty_floor(max_range=None):
+	global key, mouse
+	#return the position of a tile left-clicked in player's FOV (optionally in a range), or (None,None) if right-clicked.
+	while True:
+		#render the screen. this erases the inventory and shows the names of objects under the mouse.
+		libtcod.console_flush()
+		libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
+		render_all()
+ 
+		(x, y) = (mouse.cx, mouse.cy)
+ 
+		if mouse.rbutton_pressed or key.vk == libtcod.KEY_ESCAPE:
+			return (None, None)  #cancel if the player right-clicked or pressed Escape
+ 
+		#accept the target if the player clicked in FOV, and in case a range is specified, if it's in that range
+		if (mouse.lbutton_pressed and libtcod.map_is_in_fov(fov_map, x, y) and
+				(max_range is None or player.distance(x, y) <= max_range)):
+			return (x, y)
  
 def target_monster(max_range=None):
 	#returns a clicked monster inside FOV up to a range, or None if right-clicked
@@ -1231,6 +1252,8 @@ def closest_monster(max_range):
 	return closest_enemy
  
 
+###SPELL HANDLING
+
 def throw_light_orb():
 	global objects, fov_recompute
 	#Create a puddle of light around it
@@ -1241,7 +1264,7 @@ def throw_light_orb():
  
 	#TODO: make this land a bit randomly
 	#TODO: make this stop being lit eventually
-	lit_orb = Object(x, y, '*', 'light orb', libtcod.orange, light_source = True, light_source_level = LIGHTORB_LSL, )
+	lit_orb = Object(x, y, '*', 'light orb', LIGHT_ORB_THROWN_COLOR, light_source = True, light_source_level = LIGHT_ORB_LSL, )
 	objects.append(lit_orb)
 	lit_orb.send_to_back()
 
@@ -1257,7 +1280,7 @@ def throw_dark_orb():
  
 	#TODO: make this land a bit randomly
 	#TODO: make this stop being lit eventually
-	lit_orb = Object(x, y, '*', 'dark orb', libtcod.violet, light_source = True, light_source_level = DARKORB_LSL, )
+	lit_orb = Object(x, y, '*', 'dark orb', DARK_ORB_THROWN_COLOR, light_source = True, light_source_level = DARK_ORB_LSL, )
 	objects.append(lit_orb)
 	lit_orb.send_to_back()
 

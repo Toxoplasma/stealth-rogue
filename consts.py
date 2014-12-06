@@ -32,7 +32,7 @@ MAP_HEIGHT = 50
 #parameters for dungeon generator
 ROOM_MAX_SIZE = 15 #15
 ROOM_MIN_SIZE = 4 #6
-MAX_ROOMS = 50
+MAX_ROOMS = 20
 
 MAX_MONSTERS = [[10, 1], [15, 2], [21, 4], [30, 6], [45, 8], [60, 10], [90, 13]]
 MAX_ITEMS = [[7, 1], [10, 5], [15, 7]]
@@ -57,7 +57,11 @@ MONSTER_SEEN_COLOR = libtcod.Color(100, 0, 0)
 DARK_WALL_COLOR = (0, 0, 30)
 LIGHT_WALL_COLOR = (50, 30, 0)
 DARK_GROUND_COLOR = (20, 20, 40)
-LIGHT_GROUND_COLOR = (90, 80, 70)
+LIGHT_GROUND_COLOR = (60, 60, 80)
+
+R_FACTOR = 1.5
+B_FACTOR = 0.0
+G_FACTOR = 0.8
 
 ################################################################################
 #Item stuff
@@ -65,10 +69,14 @@ LIGHT_GROUND_COLOR = (90, 80, 70)
 
 ####Items
 LIGHT_ORB_CHANCE = [[35, 1]]
-LIGHTORB_LSL = 6
+LIGHT_ORB_LSL = 6
+LIGHT_ORB_COLOR = libtcod.light_orange
+LIGHT_ORB_THROWN_COLOR = libtcod.black
 
 DARK_ORB_CHANCE = [[35, 1]]
-DARKORB_LSL = -6
+DARK_ORB_LSL = -6
+DARK_ORB_COLOR = libtcod.light_sky
+DARK_ORB_THROWN_COLOR = libtcod.black
 
 WATERBALLOON_CHANCE = [[10, 1], [20, 3]]
 WATERBALLOON_RADIUS = 2
@@ -78,6 +86,8 @@ LIGHTNING_CHANCE = [[5, 4]]
 CONFUSE_CHANCE = [[10, 2]]
 
 ####Features
+
+TORCH_COLOR = libtcod.black
 
 SMALL_TORCH_CHANCE = [[35, 1], [25, 3], [15, 5], [10, 7]]
 SMALL_TORCH_LSL = 4

@@ -2,7 +2,7 @@ Make light/dark orbs burn out after a few turns
 
 Add torches for the orcs to carry as actual items
 
-Fix being able to see enemies through walls if they've been pursuing you?
+Fix being able to see stuff through walls if it's close enough
 
 Fix being able to throw orbs inside of walls
 
@@ -18,7 +18,12 @@ Make movement slightly randomized
 
 Show the time somewhere
 
+Add a message for water balloons dampening things (per thing!)
+
 ###### BIG ######
 
 Add coming back up floors?
 Add scrolling (maps larger than screen?)
+Add an x lookaround menu like crawl's
+
+Add a noise system with shouting
