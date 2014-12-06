@@ -171,7 +171,7 @@ class Object:
 		#print self.char + ": " + str(map[self.x][self.y].light_level)
 		#print "  fov: " + 
 		if (libtcod.map_is_in_fov(fov_map, self.x, self.y) and \
-				(map[self.x][self.y].light_level > MIN_ITEM_LIGHT_LEVEL) or self.distance_to(player) < VISION_DISTANCE_WITHOUT_LIGHT) or \
+				((map[self.x][self.y].light_level > MIN_ITEM_LIGHT_LEVEL) or self.distance_to(player) < VISION_DISTANCE_WITHOUT_LIGHT)) or \
 			(self.always_visible and map[self.x][self.y].explored):
 			#set the color and then draw the character that represents this object at its position
 			if self.ai and self.ai.can_see_player:
@@ -522,6 +522,7 @@ def get_all_equipped(obj):  #returns a list of equipped items
 		return equipped_list
 	else:
 		return []  #other objects have no equipment
+
 def pythdist(x1, y1, x2, y2):
 	return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
  
