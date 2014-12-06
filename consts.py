@@ -32,7 +32,7 @@ MAP_HEIGHT = 50
 #parameters for dungeon generator
 ROOM_MAX_SIZE = 15 #15
 ROOM_MIN_SIZE = 4 #6
-MAX_ROOMS = 20
+MAX_ROOMS = 50
 
 MAX_MONSTERS = [[10, 1], [15, 2], [21, 4], [30, 6], [45, 8], [60, 10], [90, 13]]
 MAX_ITEMS = [[7, 1], [10, 5], [15, 7]]

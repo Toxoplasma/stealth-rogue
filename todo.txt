@@ -14,6 +14,10 @@ Give them a few turns rest between movements
 
 Make floor color more orange in light or turn froom pale blue to bright orange or something
 
+Make movement slightly randomized
+
+Show the time somewhere
+
 ###### BIG ######
 
 Add coming back up floors?
