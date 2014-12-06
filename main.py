@@ -288,8 +288,8 @@ class BasicMonster:
 				if player_can_see(monster.x, monster.y):
 					message("The " + monster.name + " sees you!", libtcod.red)
 
-				self.can_see_player = True
-				self.dest = (player.x, player.y)
+			self.can_see_player = True
+			self.dest = (player.x, player.y)
 
 		else:
 			self.can_see_player = False
