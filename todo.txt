@@ -16,11 +16,16 @@ Make movement slightly randomized
 
 Show the time somewhere
 
-Add a message for water balloons dampening things (per thing!)
-
 Fix sight formulas to be less crap
 
-Add feature to not spawn ANYTHING on top of anything. Orcs on top of orcs :<
+Fix enemies with torches to always compute light right after they move (currently its a turn behind them)
+	possibly negatively apply their light before they move, then positively do it after the move?
+
+Remove light orbs from everything when they go out
+
+Add a bonus if they could already see you
+
+Add a global detection formula
 
 ###### BIG ######
 

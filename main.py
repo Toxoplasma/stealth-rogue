@@ -281,6 +281,71 @@ class BasicMonster:
 
 		actiontime = 0
 
+		#Check if it can see you!
+		if detect_player(monster):
+			#Send a message about it if it couldn't already see you
+			if not self.can_see_player:
+				if player_can_see(monster.x, monster.y):
+					message("The " + monster.name + " sees you!", libtcod.red)
+
+				self.can_see_player = True
+				self.dest = (player.x, player.y)
+
+		#If we're next to the player, attack it
+		if self.can_see_player and (monster.distance_to(player) < 2):
+			actiontime = monster.fighter.attack(player)
+
+		#Otherwise move towards dest
+		else:
+			actiontime = monster.move_towards(self.dest[0], self.dest[1])
+			#If we fail to move there, set desination to -1, -1 to pick a new one eventually
+			if not actiontime:
+				self.dest = (-1, -1)
+				actiontime = 10 #give them a turn rest
+
+		#Have we reached destination?
+		if (monster.x == self.dest[0] and monster.y == self.dest[1]) or \
+			(self.dest == (-1, -1)):
+			#If we could see the player before, mark it as not true anymore
+			self.can_see_player = False
+
+			#Pick a new destination at random (from within sight)
+			newx, newy = rand_tile_in_sight(monster.x, monster.y)
+			self.dest = (newx, newy)
+
+		return actiontime
+
+class ConfusedMonster:
+	#AI for a temporarily confused monster (reverts to previous AI after a while).
+	def __init__(self, old_ai, num_turns=CONFUSE_NUM_TURNS):
+		self.old_ai = old_ai
+		self.num_turns = num_turns
+		self.can_see_player = False
+ 
+	def take_turn(self):
+		if self.num_turns > 0:  #still confused...
+			#move in a random direction, and decrease the number of turns confused
+			speed = self.owner.move(libtcod.random_get_int(0, -1, 1), libtcod.random_get_int(0, -1, 1))
+			self.num_turns -= 1
+
+			return speed
+ 
+		else:  #restore the previous AI (this one will be deleted because it's not referenced anymore)
+			self.owner.ai = self.old_ai
+			message('The ' + self.owner.name + ' is no longer confused!', libtcod.red)
+			return self.owner.fighter.movespeed
+ 
+class LightOrbThrowingMonster:
+	def __init__(self):
+		self.can_see_player = False
+		self.dest = (-1, -1) #(self.owner.x, self.owner.y)
+
+	#AI for a basic monster.
+	def take_turn(self):
+		monster = self.owner
+
+		actiontime = 0
+
 		##Check if it can see you!
 
 		#First, does it even have LOS?
@@ -331,26 +396,6 @@ class BasicMonster:
 
 		return actiontime
 
-class ConfusedMonster:
-	#AI for a temporarily confused monster (reverts to previous AI after a while).
-	def __init__(self, old_ai, num_turns=CONFUSE_NUM_TURNS):
-		self.old_ai = old_ai
-		self.num_turns = num_turns
-		self.can_see_player = False
- 
-	def take_turn(self):
-		if self.num_turns > 0:  #still confused...
-			#move in a random direction, and decrease the number of turns confused
-			speed = self.owner.move(libtcod.random_get_int(0, -1, 1), libtcod.random_get_int(0, -1, 1))
-			self.num_turns -= 1
-
-			return speed
- 
-		else:  #restore the previous AI (this one will be deleted because it's not referenced anymore)
-			self.owner.ai = self.old_ai
-			message('The ' + self.owner.name + ' is no longer confused!', libtcod.red)
-			return self.owner.fighter.movespeed
- 
 class Item:
 	#an item that can be picked up and used.
 	def __init__(self, use_function=None):
@@ -923,6 +968,22 @@ def BFS(x, y, xt, yt):
 
 
 
+def detect_player(monster):
+	global map, player
+	if libtcod.map_is_in_fov(fov_map, monster.x, monster.y):
+		#Light-based contribution
+		light_chance = map[player.x][player.y].light_level - player.fighter.stealth
+
+		#Proximity
+		near_chance = (max((VISION_DISTANCE_WITHOUT_LIGHT - pythdist(player.x, player.y, monster.x, monster.y)), 0)**2) * 10 - player.fighter.stealth / 2
+
+		chance = max(light_chance, near_chance)
+		chance = max(chance, 0)
+		if randPercent(chance):
+			return True
+
+	return False
+
 def player_can_see(x, y):
 	LOS = libtcod.map_is_in_fov(fov_map, x, y)
 	visible = LOS and ((map[x][y].light_level > MIN_TILE_LIGHT_LEVEL) or (pythdist(x, y, player.x, player.y) < VISION_DISTANCE_WITHOUT_LIGHT))
@@ -1455,13 +1516,9 @@ def cast_confuse():
 def qinsert(o, t):
 	global q
 
-	#print "Inserting " + o.name + " at time " + str(t)
-
 	i = 0
 	while i < len(q) and t > q[i][1]:
 		i += 1
-
-	#print "  Found location in q, position " + str(i)
 
 	q.insert(i, (o, t))
 
@@ -1610,18 +1667,12 @@ def play_game():
 		if player_action == 'exit':
 			save_game()
 			break
-
-		
-
-		
  
 		#let monsters take their turn
 		if game_state == 'playing' and player_action != False:
 			#Update FOV after moving
 			update_fov()
 
-			
-			
 			#Pop player off queue,
 			_, playerstarttime = q.pop(0)
 			time = playerstarttime
@@ -1631,7 +1682,6 @@ def play_game():
 
 			time = time +  + player_action
 				
-
 			#Now, repeatedly pop other things off until we get a player
 			while(q[0][0] != player):
 				unit, newtime = q.pop(0)
@@ -1646,13 +1696,6 @@ def play_game():
 
 					#Readd to movement queue
 					qinsert(unit, time + turntime)
-			
-			#Move all the other dudes
-			# for object in objects:
-			# 	if object.ai:
-			# 		object.ai.take_turn()
-			# 		#update_lights() #THIS IS GOOD, BUT SLOWS THE GAME DOWN
-			# 		fov_recompute = True
 
  
 def main_menu():
