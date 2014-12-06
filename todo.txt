@@ -1,10 +1,6 @@
-Make light/dark orbs burn out after a few turns
-
 Add torches for the orcs to carry as actual items
 
 Fix being able to see stuff through walls if it's close enough
-
-Fix being able to throw orbs inside of walls
 
 Make orbs land a bit randomly
 
@@ -12,7 +8,9 @@ Fix enemies skipping the first turn, it's weird
 
 Give them a few turns rest between movements
 
-Make floor color more orange in light or turn froom pale blue to bright orange or something
+More color adjustments
+
+Change monsters to yellow-backed or something when they're pursuing but lost you
 
 Make movement slightly randomized
 
@@ -20,10 +18,18 @@ Show the time somewhere
 
 Add a message for water balloons dampening things (per thing!)
 
+Fix sight formulas to be less crap
+
+Add feature to not spawn ANYTHING on top of anything. Orcs on top of orcs :<
+
 ###### BIG ######
 
 Add coming back up floors?
 Add scrolling (maps larger than screen?)
 Add an x lookaround menu like crawl's
 
+Move light_source into a component
+
 Add a noise system with shouting
+
+Add high scores

@@ -7,6 +7,7 @@ import libtcodpy as libtcod
 import math
 import textwrap
 import shelve
+import random
  
 from consts import *
 
@@ -117,6 +118,37 @@ class Object:
 			return self.move(dx - self.x, dy - self.y)
 
 		return False
+
+	def get_next_move_simple(self, target_x, target_y):
+		#vector from this object to the target, and distance
+		dx = target_x - self.x
+		dy = target_y - self.y
+		distance = math.sqrt(dx ** 2 + dy ** 2)
+ 
+		#normalize it to length 1 (preserving direction), then round it and
+		#convert to integer so the movement is restricted to the map grid
+		dx = int(round(dx / distance))
+		dy = int(round(dy / distance))
+
+		return (dx, dy)
+
+	def get_next_move_simple_abs(self, target_x, target_y):
+		#vector from this object to the target, and distance
+		dx = target_x - self.x
+		dy = target_y - self.y
+		distance = math.sqrt(dx ** 2 + dy ** 2)
+ 
+		#normalize it to length 1 (preserving direction), then round it and
+		#convert to integer so the movement is restricted to the map grid
+		dx = int(round(dx / distance))
+		dy = int(round(dy / distance))
+
+		return (self.x + dx, self.y + dy)
+
+	def move_simple(self, target_x, target_y):
+		dx, dy = self.get_next_move_simple(target_x, target_y)
+		return self.move(dx, dy)
+
  
 	def distance_to(self, other):
 		#return the distance to another object
@@ -398,6 +430,29 @@ class Equipment:
 		self.is_equipped = False
 		message('Dequipped ' + self.owner.name + ' from ' + self.slot + '.', libtcod.light_yellow)
  
+
+class LightDarkOrb:
+	#AI for a light or dark orb, turns slowly dimmer/brighter
+	def __init__(self, tick_time):
+		self.can_see_player = False #Or we get a nice red background... Maybe add an is_enemy flag
+		self.tick_time = tick_time
+ 
+	def take_turn(self):
+		orb = self.owner
+		if orb.light_source:
+			LSL = orb.light_source_level
+			sign = math.copysign(1, LSL)
+
+			newLSL = int(sign * (abs(LSL) - 1))
+
+			if newLSL == 0:
+				orb.light_source = False
+
+			orb.light_source_level = newLSL
+
+			print "  orb LSL: " + str(newLSL)
+
+		return self.tick_time
  
 def get_equipped_in_slot(slot):  #returns the equipment in a slot, or None if it's empty
 	for obj in inventory:
@@ -414,14 +469,23 @@ def get_all_equipped(obj):  #returns a list of equipped items
 		return equipped_list
 	else:
 		return []  #other objects have no equipment
+def pythdist(x1, y1, x2, y2):
+	return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
  
- 
+###RANDOM
+
 #Returns true if under chance
 def randPercent(chance):
 	return libtcod.random_get_int(0, 0, 99) < chance
 
-def pythdist(x1, y1, x2, y2):
-	return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
+#Gaussian random integers
+def rand_gauss(mu, sigma):
+	return int(random.gauss(mu, sigma))
+
+#Positive random ints
+def rand_gauss_pos(mu, sigma):
+	return max(0, int(random.gauss(mu, sigma)))
+
 
 def rand_tile_in_sight(x, y):
 	global map
@@ -446,6 +510,39 @@ def rand_tile_in_sight(x, y):
 
 	return (tx, ty)
 
+def get_empty_tile():
+	global map
+	x = libtcod.random_get_int(0, 0, MAP_WIDTH - 1)
+	y = libtcod.random_get_int(0, 0, MAP_HEIGHT - 1)
+
+	while is_blocked(x, y):
+		x = libtcod.random_get_int(0, 0, MAP_WIDTH - 1)
+		y = libtcod.random_get_int(0, 0, MAP_HEIGHT - 1)
+
+	return x, y
+
+def random_choice_index(chances):  #choose one option from list of chances, returning its index
+	#the dice will land on some number between 1 and the sum of the chances
+	dice = libtcod.random_get_int(0, 1, sum(chances))
+ 
+	#go through all chances, keeping the sum so far
+	running_sum = 0
+	choice = 0
+	for w in chances:
+		running_sum += w
+ 
+		#see if the dice landed in the part that corresponds to this choice
+		if dice <= running_sum:
+			return choice
+		choice += 1
+ 
+def random_choice(chances_dict):
+	#choose one option from dictionary of chances, returning its key
+	chances = chances_dict.values()
+	strings = chances_dict.keys()
+ 
+	return strings[random_choice_index(chances)]
+
 def is_blocked(x, y):
 	#first test the map tile
 	if map[x][y].blocked:
@@ -458,6 +555,18 @@ def is_blocked(x, y):
  
 	return False
  
+def blocked_by(x, y):
+	#first test the map tile
+	if map[x][y].blocked:
+		return "wall"
+ 
+	#now check for any blocking objects
+	for object in objects:
+		if object.blocks and object.x == x and object.y == y:
+			return object.name
+ 
+	return False
+
 def make_floor(x, y):
 	global map
 	map[x][y].blocked = False
@@ -568,27 +677,7 @@ def make_map():
 
 	fov_map = copy_map_to_fov_map()
  
-def random_choice_index(chances):  #choose one option from list of chances, returning its index
-	#the dice will land on some number between 1 and the sum of the chances
-	dice = libtcod.random_get_int(0, 1, sum(chances))
- 
-	#go through all chances, keeping the sum so far
-	running_sum = 0
-	choice = 0
-	for w in chances:
-		running_sum += w
- 
-		#see if the dice landed in the part that corresponds to this choice
-		if dice <= running_sum:
-			return choice
-		choice += 1
- 
-def random_choice(chances_dict):
-	#choose one option from dictionary of chances, returning its key
-	chances = chances_dict.values()
-	strings = chances_dict.keys()
- 
-	return strings[random_choice_index(chances)]
+
  
 def from_dungeon_level(table):
 	#returns a value that depends on level. the table specifies what value occurs after each level, default is 0.
@@ -597,16 +686,7 @@ def from_dungeon_level(table):
 			return value
 	return 0
 
-def get_empty_tile():
-	global map
-	x = libtcod.random_get_int(0, 0, MAP_WIDTH - 1)
-	y = libtcod.random_get_int(0, 0, MAP_HEIGHT - 1)
 
-	while map[x][y].blocked:
-		x = libtcod.random_get_int(0, 0, MAP_WIDTH - 1)
-		y = libtcod.random_get_int(0, 0, MAP_HEIGHT - 1)
-
-	return x, y
  
 def place_all_objects():
 	global map, q, time
@@ -618,7 +698,8 @@ def place_all_objects():
 	feat_chances['large torch'] = from_dungeon_level(LARGE_TORCH_CHANCE)
 
 
-	num_features = 10 #TODO: randomize this a little
+	target_num_features = from_dungeon_level(NUM_FEATURES)
+	num_features = rand_gauss_pos(target_num_features, target_num_features / 3)
 	for i in range(num_features):
 		x, y = get_empty_tile()
 		choice = random_choice(feat_chances)
@@ -648,7 +729,6 @@ def place_all_objects():
 
 	####Items
 	#maximum number of items per floor
-	max_items = from_dungeon_level(MAX_ITEMS)
  
 	#chance of each item (by default they have a chance of 0 at level 1, which then goes up)
 	item_chances = {}
@@ -663,7 +743,8 @@ def place_all_objects():
 	item_chances['shield'] =    0 #from_dungeon_level([[15, 8]])
 
 	#choose random number of items
-	num_items = libtcod.random_get_int(0, 0, max_items)
+	target_num_items = from_dungeon_level(NUM_ITEMS)
+	num_items = rand_gauss_pos(target_num_items, target_num_items / 3)
  
 	for i in range(num_items):
 		#choose random spot for this item
@@ -723,7 +804,6 @@ def place_all_objects():
 
 	####Monsters
 	#maximum number of monsters per room
-	max_monsters = from_dungeon_level(MAX_MONSTERS)
  
 	#chance of each monster
 	monster_chances = {}
@@ -732,7 +812,8 @@ def place_all_objects():
 	monster_chances['troll'] = from_dungeon_level(TROLL_CHANCE)
 
 	#choose random number of monsters
-	num_monsters = (libtcod.random_get_int(0, 0, max_monsters) + libtcod.random_get_int(0, 0, max_monsters))/2 #TODO: Gaussian gen this
+	target_num_monsters = from_dungeon_level(NUM_MONSTERS)
+	num_monsters = rand_gauss_pos(target_num_monsters, target_num_monsters / 3)
  
 	for i in range(num_monsters):
 		#choose random spot for this monster
@@ -770,6 +851,10 @@ def place_all_objects():
 			objects.append(monster)
 
 			qinsert(monster, time + 2) #player gets inserted at 1, monsters at 2
+
+	print "Generated " + str(num_features) + " features"
+	print "Generated " + str(num_items) + " items"
+	print "Generated " + str(num_monsters) + " monsters"
  
  
 def render_bar(x, y, total_width, name, value, maximum, bar_color, back_color):
@@ -1206,24 +1291,32 @@ def target_tile(max_range=None):
 				(max_range is None or player.distance(x, y) <= max_range)):
 			return (x, y)
 
-def target_empty_floor(max_range=None):
-	global key, mouse
-	#return the position of a tile left-clicked in player's FOV (optionally in a range), or (None,None) if right-clicked.
-	while True:
-		#render the screen. this erases the inventory and shows the names of objects under the mouse.
-		libtcod.console_flush()
-		libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
-		render_all()
+def throw_object(object, startx, starty, endx, endy, max_range=None):
+	#Continuously move the object
+	while (object.x != endx or object.y != endy) and (max_range == None or object.distance(startx, starty) < max_range):
+		if not object.move_simple(endx, endy):
+			block_x, block_y = object.get_next_move_simple_abs(endx, endy)
+			hitName = blocked_by(block_x, block_y)
+			message("The " + object.name + " hits the " + hitName)
+			break
+
+
+	# #return the position of a tile left-clicked in player's FOV (optionally in a range), or (None,None) if right-clicked.
+	# while True:
+	# 	#render the screen. this erases the inventory and shows the names of objects under the mouse.
+	# 	libtcod.console_flush()
+	# 	libtcod.sys_check_for_event(libtcod.EVENT_KEY_PRESS | libtcod.EVENT_MOUSE, key, mouse)
+	# 	render_all()
  
-		(x, y) = (mouse.cx, mouse.cy)
+	# 	(x, y) = (mouse.cx, mouse.cy)
  
-		if mouse.rbutton_pressed or key.vk == libtcod.KEY_ESCAPE:
-			return (None, None)  #cancel if the player right-clicked or pressed Escape
+	# 	if mouse.rbutton_pressed or key.vk == libtcod.KEY_ESCAPE:
+	# 		return (None, None)  #cancel if the player right-clicked or pressed Escape
  
-		#accept the target if the player clicked in FOV, and in case a range is specified, if it's in that range
-		if (mouse.lbutton_pressed and libtcod.map_is_in_fov(fov_map, x, y) and
-				(max_range is None or player.distance(x, y) <= max_range)):
-			return (x, y)
+	# 	#accept the target if the player clicked in FOV, and in case a range is specified, if it's in that range
+	# 	if (mouse.lbutton_pressed and libtcod.map_is_in_fov(fov_map, x, y) and
+	# 			(max_range is None or player.distance(x, y) <= max_range)):
+	# 		return (x, y)
  
 def target_monster(max_range=None):
 	#returns a clicked monster inside FOV up to a range, or None if right-clicked
@@ -1252,22 +1345,27 @@ def closest_monster(max_range):
 	return closest_enemy
  
 
-###SPELL HANDLING
+###SPELLS ###MAGIC
 
 def throw_light_orb():
-	global objects, fov_recompute
+	global objects, fov_recompute, time
 	#Create a puddle of light around it
 	message('Left-click a target tile for the light orb, or right-click to cancel.', libtcod.light_cyan)
 	(x, y) = target_tile()
 	if x is None: return 'cancelled'
-	message('The light orb bursts into magical fire as it lands on the ground!', libtcod.orange)
  
 	#TODO: make this land a bit randomly
 	#TODO: make this stop being lit eventually
-	lit_orb = Object(x, y, '*', 'light orb', LIGHT_ORB_THROWN_COLOR, light_source = True, light_source_level = LIGHT_ORB_LSL, )
+	orb_ai = LightDarkOrb(LIGHT_ORB_TICK_TIME)
+	lit_orb = Object(player.x, player.y, '*', 'light orb', LIGHT_ORB_THROWN_COLOR, 
+			light_source = True, light_source_level = LIGHT_ORB_LSL, ai = orb_ai)
+	throw_object(lit_orb, player.x, player.y, x, y)
 	objects.append(lit_orb)
 	lit_orb.send_to_back()
 
+	qinsert(lit_orb, time + LIGHT_ORB_TICK_TIME)
+
+	message('The light orb bursts into magical fire as it lands on the ground!', libtcod.orange)
 	fov_recompute = True
 
 def throw_dark_orb():
@@ -1276,14 +1374,19 @@ def throw_dark_orb():
 	message('Left-click a target tile for the dark orb, or right-click to cancel.', libtcod.light_cyan)
 	(x, y) = target_tile()
 	if x is None: return 'cancelled'
-	message('The temperature drops as the orb begins to absorb light!', libtcod.light_violet)
  
 	#TODO: make this land a bit randomly
 	#TODO: make this stop being lit eventually
-	lit_orb = Object(x, y, '*', 'dark orb', DARK_ORB_THROWN_COLOR, light_source = True, light_source_level = DARK_ORB_LSL, )
+	orb_ai = LightDarkOrb(DARK_ORB_TICK_TIME)
+	lit_orb = Object(player.x, player.y, '*', 'dark orb', DARK_ORB_THROWN_COLOR, 
+				light_source = True, light_source_level = DARK_ORB_LSL, ai = orb_ai)
+	throw_object(lit_orb, player.x, player.y, x, y)
 	objects.append(lit_orb)
 	lit_orb.send_to_back()
 
+	qinsert(lit_orb, time + DARK_ORB_TICK_TIME)
+
+	message('The temperature drops as the orb begins to absorb light!', libtcod.light_violet)
 	fov_recompute = True
 
 def throw_water_balloon():
@@ -1296,7 +1399,10 @@ def throw_water_balloon():
  
 	for obj in objects:  #damage every fighter in range, including the player
 		if obj.distance(x, y) <= WATERBALLOON_RADIUS and obj.light_source:
-			#message('The ' + obj.name + ' gets burned for ' + str(FIREBALL_DAMAGE) + ' hit points.', libtcod.orange)
+			if obj.ai:
+				message('The ' + obj.name + '\'s torch goes out!', libtcod.light_blue)
+			else:
+				message('The ' + obj.name + ' goes out!', libtcod.light_blue)
 			obj.light_source = False
 			fov_recompute = True
 

@@ -13,6 +13,15 @@ Features:
 	Goal: steal the crown from the dread king Asterion
 
 
+Monsters
+	Orc: normal dude, torch
+	Goblin: weak dude, small torch
+	Troll: strong dude, no torch
+	Light thrower: weak support guy, no torch
+		throws light orbs at you when he loses sight of you
+	Archer: shoots arrows, no torch
+	
+
 
 skills
 	Stealth

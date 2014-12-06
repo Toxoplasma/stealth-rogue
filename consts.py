@@ -34,8 +34,9 @@ ROOM_MAX_SIZE = 15 #15
 ROOM_MIN_SIZE = 4 #6
 MAX_ROOMS = 20
 
-MAX_MONSTERS = [[10, 1], [15, 2], [21, 4], [30, 6], [45, 8], [60, 10], [90, 13]]
-MAX_ITEMS = [[7, 1], [10, 5], [15, 7]]
+NUM_MONSTERS = [[5, 1], [10, 2], [15, 4], [25, 6], [35, 8], [50, 10], [80, 13]]
+NUM_ITEMS = [[5, 1], [10, 5], [15, 7]]
+NUM_FEATURES = [[10, 1]]
  
 ################################################################################
 #Vision stuff
@@ -72,13 +73,15 @@ LIGHT_ORB_CHANCE = [[35, 1]]
 LIGHT_ORB_LSL = 6
 LIGHT_ORB_COLOR = libtcod.light_orange
 LIGHT_ORB_THROWN_COLOR = libtcod.black
+LIGHT_ORB_TICK_TIME = 20
 
 DARK_ORB_CHANCE = [[35, 1]]
 DARK_ORB_LSL = -6
 DARK_ORB_COLOR = libtcod.light_sky
 DARK_ORB_THROWN_COLOR = libtcod.black
+DARK_ORB_TICK_TIME = 40
 
-WATERBALLOON_CHANCE = [[10, 1], [20, 3]]
+WATERBALLOON_CHANCE = [[10, 1], [20, 5]]
 WATERBALLOON_RADIUS = 2
 
 LIGHTNING_CHANCE = [[5, 4]]
