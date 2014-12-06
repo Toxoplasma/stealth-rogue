@@ -26,13 +26,16 @@ LIMIT_FPS = 20  #20 frames-per-second maximum
 ################################################################################
 
 #size of the map
-MAP_WIDTH = 120
+MAP_WIDTH = 100
 MAP_HEIGHT = 50
  
 #parameters for dungeon generator
-ROOM_MAX_SIZE = 20 #15
+ROOM_MAX_SIZE = 15 #15
 ROOM_MIN_SIZE = 4 #6
-MAX_ROOMS = 30
+MAX_ROOMS = 20
+
+MAX_MONSTERS = [[10, 1], [15, 2], [21, 4], [30, 6], [45, 8], [60, 10], [90, 13]]
+MAX_ITEMS = [[7, 1], [10, 5], [15, 7]]
  
 ################################################################################
 #Vision stuff
@@ -46,27 +49,45 @@ LIGHT_MAX = 100
 LIGHT_MIN = 0
 
 MIN_ITEM_LIGHT_LEVEL = 30
-MIN_TILE_LIGHT_LEVEL = 20
+MIN_TILE_LIGHT_LEVEL = 0
 
 ##Colors
 
 MONSTER_SEEN_COLOR = libtcod.Color(100, 0, 0)
-DARK_WALL_COLOR = (0, 0, 100)
-LIGHT_WALL_COLOR = (90, 70, 10)
-DARK_GROUND_COLOR = (50, 50, 100)
-LIGHT_GROUND_COLOR = (155, 125, 0)
+DARK_WALL_COLOR = (0, 0, 30)
+LIGHT_WALL_COLOR = (50, 30, 0)
+DARK_GROUND_COLOR = (20, 20, 40)
+LIGHT_GROUND_COLOR = (90, 80, 70)
 
 ################################################################################
 #Item stuff
 ################################################################################
 
-LIGHT_ORB_CHANCE = 35
+####Items
+LIGHT_ORB_CHANCE = [[35, 1]]
 LIGHTORB_LSL = 6
 
-DARK_ORB_CHANCE = 35
+DARK_ORB_CHANCE = [[35, 1]]
 DARKORB_LSL = -6
 
+WATERBALLOON_CHANCE = [[10, 1], [20, 3]]
+WATERBALLOON_RADIUS = 2
+
+LIGHTNING_CHANCE = [[5, 4]]
+
+CONFUSE_CHANCE = [[10, 2]]
+
+####Features
+
+SMALL_TORCH_CHANCE = [[35, 1], [25, 3], [15, 5], [10, 7]]
+SMALL_TORCH_LSL = 4
+
+TORCH_CHANCE = [[15, 2], [25, 4], [35, 5]]
 TORCH_LSL = 8
+
+LARGE_TORCH_CHANCE = [[5, 3], [15, 5], [25, 7], [35, 9]]
+LARGE_TORCH_LSL = 12
+
 
 ################################################################################
 #Enemy stuff
@@ -79,17 +100,31 @@ MAX_MONSTER_MOVE = 10
 #Enemy stuff
 ########################################
 
+##Goblins
+GOBLIN_CHANCE = [[80, 1], [50, 3], [15, 5]]
+GOBLIN_HP = 20
+GOBLIN_POW = 3
+GOBLIN_DEF = 0
+GOBLIN_XP = 15
+GOBLIN_LSL = 4
+GOBLIN_COLOR = libtcod.desaturated_green
+
 ##Orcs
+ORC_CHANCE = [[80, 1]]
 ORC_HP = 30
 ORC_POW = 4
 ORC_DEF = 0
 ORC_XP = 35
+ORC_LSL = 6
+ORC_COLOR = libtcod.desaturated_green
 
 ##Trolls
+TROLL_CHANCE = [[15, 3], [30, 5], [60, 7]]
 TROLL_HP = 30
 TROLL_POW = 8
 TROLL_DEF = 2
 TROLL_XP = 100
+TROLL_COLOR = libtcod.darker_green
 
 
 ################################################################################
