@@ -122,6 +122,14 @@ GOBLIN_XP = 15
 GOBLIN_LSL = 4
 GOBLIN_COLOR = libtcod.desaturated_green
 
+ORB_GOBLIN_CHANCE = [[1000, 1]]
+ORB_GOBLIN_HP = 20
+ORB_GOBLIN_POW = 3
+ORB_GOBLIN_DEF = 0
+ORB_GOBLIN_XP = 45
+ORB_GOBLIN_COLOR = libtcod.desaturated_blue
+
+
 ##Orcs
 ORC_CHANCE = [[80, 1]]
 ORC_HP = 30
@@ -131,6 +139,7 @@ ORC_XP = 35
 ORC_LSL = 6
 ORC_COLOR = libtcod.desaturated_green
 
+
 ##Trolls
 TROLL_CHANCE = [[15, 3], [30, 5], [60, 7]]
 TROLL_HP = 30
@@ -138,6 +147,8 @@ TROLL_POW = 8
 TROLL_DEF = 2
 TROLL_XP = 100
 TROLL_COLOR = libtcod.darker_green
+
+
 
 
 ################################################################################

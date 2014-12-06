@@ -335,7 +335,7 @@ class ConfusedMonster:
 			message('The ' + self.owner.name + ' is no longer confused!', libtcod.red)
 			return self.owner.fighter.movespeed
  
-class LightOrbThrowingMonster:
+class LightOrbThrowerMonster:
 	def __init__(self):
 		self.can_see_player = False
 		self.dest = (-1, -1) #(self.owner.x, self.owner.y)
@@ -346,31 +346,32 @@ class LightOrbThrowingMonster:
 
 		actiontime = 0
 
-		##Check if it can see you!
+		could_see_player = self.can_see_player
 
-		#First, does it even have LOS?
-		if libtcod.map_is_in_fov(fov_map, monster.x, monster.y):
-			#Ok, does it detect you?
-
-			#Light-based contribution
-			light_chance = map[player.x][player.y].light_level - player.fighter.stealth
-
-			#Proximity
-			near_chance = (max((VISION_DISTANCE_WITHOUT_LIGHT - pythdist(player.x, player.y, monster.x, monster.y)), 0)**2) * 10 - player.fighter.stealth / 2
-
-			chance = max(light_chance, near_chance)
-			chance = max(chance, 0)
-			if randPercent(chance):
-				#It sees you!
-
-				#Send a message about it if it couldn't already see you
-				if not self.can_see_player:
-					if player_can_see(monster.x, monster.y):
-						message("The " + monster.name + " sees you!", libtcod.red)
+		#Check if it can see you!
+		if detect_player(monster):
+			#Send a message about it if it couldn't already see you
+			if not self.can_see_player:
+				if player_can_see(monster.x, monster.y):
+					message("The " + monster.name + " sees you!", libtcod.red)
 
 				self.can_see_player = True
 				self.dest = (player.x, player.y)
 
+		elif could_see_player: #It couldn't see you, so it tries to throw an orb
+			self.can_see_player = False
+
+			message("The " + monster.name + " throws a light orb!", libtcod.red)
+			
+			#Throw an orb at destination
+			orb_ai = LightDarkOrb(LIGHT_ORB_TICK_TIME)
+			lit_orb = Object(monster.x, monster.y, '*', 'light orb', LIGHT_ORB_THROWN_COLOR, 
+					light_source = True, light_source_level = LIGHT_ORB_LSL, ai = orb_ai)
+			throw_object(lit_orb, monster.x, monster.y, self.dest[0], self.dest[1])
+			objects.append(lit_orb)
+			lit_orb.send_to_back()
+
+			qinsert(lit_orb, time + LIGHT_ORB_TICK_TIME)
 
 		#If we're next to the player, attack it
 		if self.can_see_player and (monster.distance_to(player) < 2):
@@ -395,6 +396,7 @@ class LightOrbThrowingMonster:
 			self.dest = (newx, newy)
 
 		return actiontime
+
 
 class Item:
 	#an item that can be picked up and used.
@@ -853,6 +855,7 @@ def place_all_objects():
 	#chance of each monster
 	monster_chances = {}
 	monster_chances['goblin'] = from_dungeon_level(GOBLIN_CHANCE)
+	monster_chances['orb goblin'] = from_dungeon_level(ORB_GOBLIN_CHANCE)
 	monster_chances['orc'] = from_dungeon_level(ORC_CHANCE)  #orc always shows up, even if all other monsters have 0 chance
 	monster_chances['troll'] = from_dungeon_level(TROLL_CHANCE)
 
@@ -883,6 +886,15 @@ def place_all_objects():
 
 				monster = Object(x, y, 'g', 'goblin', GOBLIN_COLOR,
 								 blocks=True, light_source=True, light_source_level=GOBLIN_LSL, #TODO: Add them actually carrying torches, not just lights
+								 fighter=fighter_component, ai=ai_component)
+
+			elif choice == 'orb goblin':
+				#create a goblin
+				fighter_component = Fighter(hp=ORB_GOBLIN_HP, defense=ORB_GOBLIN_DEF, power=ORB_GOBLIN_POW, xp=ORB_GOBLIN_XP, death_function=monster_death)
+				ai_component = LightOrbThrowerMonster()
+
+				monster = Object(x, y, 'g', 'orb goblin', ORB_GOBLIN_COLOR,
+								 blocks=True, #TODO: Add them actually carrying torches, not just lights
 								 fighter=fighter_component, ai=ai_component)
 
 			elif choice == 'troll':
