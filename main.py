@@ -491,6 +491,8 @@ class LightDarkOrb:
 		self.tick_time = tick_time
  
 	def take_turn(self):
+		global objects, q
+
 		orb = self.owner
 		if orb.light_source:
 			LSL = orb.light_source_level
@@ -500,6 +502,9 @@ class LightDarkOrb:
 
 			if newLSL == 0:
 				orb.light_source = False
+
+				#Remove from everything
+				oremove(orb)
 
 			orb.light_source_level = newLSL
 
@@ -539,6 +544,10 @@ def rand_gauss(mu, sigma):
 #Positive random ints
 def rand_gauss_pos(mu, sigma):
 	return max(0, int(random.gauss(mu, sigma)))
+
+#Fluctuate linearly around a point, +-/10%
+def rand_lin_fluc(num):
+	return int(random.uniform(num - num/10.0, num + num/10.0))
 
 
 def rand_tile_in_sight_light_bias(x, y):
@@ -586,6 +595,21 @@ def rand_tile_in_sight(x, y):
 		ty = libtcod.random_get_int(0, starty, endy)
 
 	return (tx, ty)
+
+#Get a random tile with cubic darkness bias
+def rand_tile_dark_bias():
+	global map
+
+	def invalidChoice(x_, y_):
+		return is_blocked(x_, y_)
+
+	chances = {}
+	for j in range(0, MAP_HEIGHT):
+		for i in range (0, MAP_WIDTH):
+			if not invalidChoice(i, j):
+				chances[(i, j)] = (99 - map[i][j].light_level)**3 #do this so they don't get abandoned by orcs and have all 0s
+	
+	return random_choice(chances)
 
 def get_empty_tile():
 	global map
@@ -711,23 +735,15 @@ def make_map():
 			#"paint" it to the map's tiles
 			create_room(new_room)
  
-			#add some contents to this room, such as monsters
-			#place_objects(new_room)
- 
 			#center coordinates of new room, will be useful later
 			(new_x, new_y) = new_room.center()
  
-			if num_rooms == 0:
-				#this is the first room, where the player starts at
-				player.x = new_x
-				player.y = new_y
-			else:
-				#all rooms after the first:
+ 			if num_rooms > 0:
 				#connect it to the previous room with a tunnel
- 
+
 				#center coordinates of previous room
 				(prev_x, prev_y) = rooms[num_rooms-1].center()
- 
+
 				#draw a coin (random number that is either 0 or 1)
 				if libtcod.random_get_int(0, 0, 1) == 1:
 					#first move horizontally, then vertically
@@ -752,9 +768,13 @@ def make_map():
 	#Generate dungeon features
 	place_all_objects()
 
-	fov_map = copy_map_to_fov_map()
- 
+	#Put the player down
 
+	px, py = rand_tile_dark_bias()
+	player.x = px
+	player.y = py
+
+	fov_map = copy_map_to_fov_map()
  
 def from_dungeon_level(table):
 	#returns a value that depends on level. the table specifies what value occurs after each level, default is 0.
@@ -763,8 +783,6 @@ def from_dungeon_level(table):
 			return value
 	return 0
 
-
- 
 def place_all_objects():
 	global map, q, time
 
@@ -847,22 +865,22 @@ def place_all_objects():
 			elif choice == 'water balloon':
 				#Create a throwable light orb!
 				item_component = Item(use_function=throw_water_balloon)
-				item = Object(x, y, 'd', 'water balloon', libtcod.purple, item=item_component)
+				item = Object(x, y, '^', 'water balloon', WATERBALLOON_COLOR, item=item_component)
  
 			elif choice == 'lightning':
 				#create a lightning bolt scroll
 				item_component = Item(use_function=cast_lightning)
-				item = Object(x, y, '#', 'scroll of lightning bolt', libtcod.light_yellow, item=item_component)
+				item = Object(x, y, '?', 'scroll of lightning bolt', libtcod.light_yellow, item=item_component)
  
 			elif choice == 'fireball':
 				#create a fireball scroll
 				item_component = Item(use_function=cast_fireball)
-				item = Object(x, y, '#', 'scroll of fireball', libtcod.light_yellow, item=item_component)
+				item = Object(x, y, '?', 'scroll of fireball', libtcod.light_yellow, item=item_component)
  
 			elif choice == 'confuse':
 				#create a confuse scroll
 				item_component = Item(use_function=cast_confuse)
-				item = Object(x, y, '#', 'scroll of confusion', libtcod.light_yellow, item=item_component)
+				item = Object(x, y, '?', 'scroll of confusion', libtcod.light_yellow, item=item_component)
  
 			elif choice == 'sword':
 				#create a sword
@@ -1119,6 +1137,7 @@ def render_all():
 					#it's visible
 					(r, g, b) = map[x][y].light_color
 					light = map[x][y].light_level
+					#light = rand_lin_fluc(light) #Randomly fluctuate a little, for style points
 					color = libtcod.Color(int(r + R_FACTOR*light), 
 										  int(g + G_FACTOR*light), 
 										  int(b + B_FACTOR*light))
@@ -1569,7 +1588,17 @@ def qinsert(o, t):
 
 	q.insert(i, (o, t))
 
+def qremove(o):
+	global q
+	for i in q:
+		if i[0] == o:
+			q.remove(i)
  
+def oremove(o):
+	global q, objects
+	qremove(o)
+	objects.remove(o)
+
 def save_game():
 	#open a new empty shelve (possibly overwriting an old one) to write the game data
 	file = shelve.open('savegame', 'n')

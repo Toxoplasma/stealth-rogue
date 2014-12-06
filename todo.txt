@@ -1,7 +1,5 @@
 Add torches for the orcs to carry as actual items
 
-Fix being able to see stuff through walls if it's close enough
-
 Make orbs land a bit randomly
 
 Fix enemies skipping the first turn, it's weird
@@ -26,6 +24,12 @@ Remove light orbs from everything when they go out
 Add a bonus if they could already see you
 
 Add a global detection formula
+
+scroll of speed
+flashbang grenades (area confuse for shorter time)
+Confuse attack eachother
+
+archer that stays in light
 
 ###### BIG ######
 

@@ -69,7 +69,7 @@ G_FACTOR = 0.8
 ################################################################################
 
 ####Items
-LIGHT_ORB_CHANCE = [[35, 1]]
+LIGHT_ORB_CHANCE = [[15, 1]]
 LIGHT_ORB_LSL = 6
 LIGHT_ORB_COLOR = libtcod.light_orange
 LIGHT_ORB_THROWN_COLOR = libtcod.black
@@ -83,6 +83,7 @@ DARK_ORB_TICK_TIME = 40
 
 WATERBALLOON_CHANCE = [[10, 1], [20, 5]]
 WATERBALLOON_RADIUS = 2
+WATERBALLOON_COLOR = libtcod.blue
 
 LIGHTNING_CHANCE = [[5, 4]]
 
