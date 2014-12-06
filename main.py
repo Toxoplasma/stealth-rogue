@@ -291,6 +291,9 @@ class BasicMonster:
 				self.can_see_player = True
 				self.dest = (player.x, player.y)
 
+		else:
+			self.can_see_player = False
+
 		#If we're next to the player, attack it
 		if self.can_see_player and (monster.distance_to(player) < 2):
 			actiontime = monster.fighter.attack(player)
@@ -307,7 +310,6 @@ class BasicMonster:
 		if (monster.x == self.dest[0] and monster.y == self.dest[1]) or \
 			(self.dest == (-1, -1)):
 			#If we could see the player before, mark it as not true anymore
-			self.can_see_player = False
 
 			#Pick a new destination at random (from within sight)
 			newx, newy = rand_tile_in_sight(monster.x, monster.y)
@@ -987,13 +989,18 @@ def BFS(x, y, xt, yt):
 def detect_player(monster):
 	global map, player
 	if libtcod.map_is_in_fov(fov_map, monster.x, monster.y):
+
+		already_seen = 0
+		if monster.ai.can_see_player:
+			already_seen = 50
+
 		#Light-based contribution
 		light_chance = map[player.x][player.y].light_level - player.fighter.stealth
 
 		#Proximity
 		near_chance = (max((VISION_DISTANCE_WITHOUT_LIGHT - pythdist(player.x, player.y, monster.x, monster.y)), 0)**2) * 10 - player.fighter.stealth / 2
 
-		chance = max(light_chance, near_chance)
+		chance = light_chance + near_chance + already_seen
 		chance = max(chance, 0)
 		if randPercent(chance):
 			return True
