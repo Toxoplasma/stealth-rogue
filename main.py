@@ -332,6 +332,10 @@ class ConfusedMonster:
 			speed = self.owner.move(libtcod.random_get_int(0, -1, 1), libtcod.random_get_int(0, -1, 1))
 			self.num_turns -= 1
 
+			#If they ran into a wall, still make it take up time
+			if not speed:
+				speed = self.owner.fighter.movespeed
+
 			return speed
  
 		else:  #restore the previous AI (this one will be deleted because it's not referenced anymore)
@@ -1269,6 +1273,62 @@ def player_move_or_attack(dx, dy):
 		return player.move(dx, dy)
  
  
+def text_input(header):
+	width = len(header)
+	header_height = libtcod.console_get_height_rect(con, 0, 0, width, SCREEN_HEIGHT, header)
+	if header == '':
+		header_height = 0
+	height = 1 + header_height
+
+	#create an off-screen console that represents the menu's window
+	window = libtcod.console_new(width, height)
+
+	#print the header, with auto-wrap
+	libtcod.console_set_default_foreground(window, libtcod.white)
+	libtcod.console_print_rect_ex(window, 0, 0, width, height, libtcod.BKGND_NONE, libtcod.LEFT, header)
+ 
+	#blit the contents of "window" to the root console
+	x = SCREEN_WIDTH/2 - width/2
+	y = SCREEN_HEIGHT/6 - height/2
+	libtcod.console_blit(window, 0, 0, width, height, 0, x, y, 1.0, 0.7)
+
+ 	#Now, get key input repeatedly
+ 	text = ""
+
+	libtcod.console_flush()
+	key = libtcod.console_wait_for_keypress(True)
+
+	while key.vk != libtcod.KEY_ENTER and key.vk != libtcod.KEY_ESCAPE:
+		if key.vk == libtcod.KEY_BACKSPACE:
+			if len(text) > 0:
+				text = text[:-1] #Cut off the last one
+		elif key.c >= 32 and key.c <= 127:
+			key_char = chr(key.c)
+			text += key_char
+
+		#Redraw
+		#render_all()
+
+		window = libtcod.console_new(width, height)
+
+		#print the header, with auto-wrap
+		libtcod.console_set_default_foreground(window, libtcod.white)
+		libtcod.console_print_rect_ex(window, 0, 0, width, height, libtcod.BKGND_NONE, libtcod.LEFT, header)
+		#libtcod.console_print_ex(window, 0, 1, libtcod.BKGND_NONE, libtcod.LEFT, 'Ravi')
+		libtcod.console_print_ex(window, 0, 1, libtcod.BKGND_NONE, libtcod.LEFT, text)
+		#libtcod.console_print_ex(panel, MSG_X, y, libtcod.BKGND_NONE, libtcod.LEFT,line)
+	 
+		#blit the contents of "window" to the root console
+		libtcod.console_blit(window, 0, 0, width, height, 0, x, y, 1.0, 0.7)
+
+		libtcod.console_flush()
+
+		key = libtcod.console_wait_for_keypress(True)
+
+	return text
+
+
+
 def menu(header, options, width):
 	if len(options) > 26: raise ValueError('Cannot have a menu with more than 26 options.')
  
@@ -1425,16 +1485,92 @@ def check_level_up():
 		elif choice == 2:
 			player.fighter.base_defense += 1
  
-def add_highscore():
+def add_highscore(score):
+	playername = player.playername
+
 	#Load highscores from file
-	file = shelve.open('highscores', 'n')
-	scores = file['scores']
+	try:
+		file = shelve.open('highscores', 'r')
+		scores = file['scores']
+		file.close()
 
+		#Insert score
+		i = 0
+		while i < len(q) and score <= scores[i][1]:
+			i += 1
 
-	#Add our score
+		scores.insert(i, (playername, score))
+
+	except:
+		print "No highscore file found."
+		scores = [(playername, score)]
+
 	#Write them back to the file
+	file = shelve.open('highscores', 'n')
+	file['scores'] = scores
+	file.close()
 
-#def show_highscores():
+def show_highscores():
+	#Load them from a file
+	try:
+		file = shelve.open('highscores', 'r')
+		scores = file['scores']
+		file.close()
+
+	except:
+		print "No highscore file found."
+		scores = []
+
+	#Format them into an array of lines
+
+	texts = []
+	for (name, score) in scores[0 : min(25, len(scores))]:
+		spacecount = max(20 - len(name), 0)
+		texts.append(name + (' ' * spacecount) + str(score))
+	#menu("High Scores", texts, SCORE_WIDTH)
+
+	#calculate total height for the header (after auto-wrap) and one line per option
+	header = "High Scores"
+	width = SCORE_WIDTH
+	header_height = libtcod.console_get_height_rect(con, 0, 0, width, SCREEN_HEIGHT, header)
+	if header == '':
+		header_height = 0
+	height = len(texts) + header_height
+ 
+	#create an off-screen console that represents the menu's window
+	window = libtcod.console_new(width, height)
+ 
+	#print the header, with auto-wrap
+	libtcod.console_set_default_foreground(window, libtcod.white)
+	libtcod.console_print_rect_ex(window, 0, 0, width, height, libtcod.BKGND_NONE, libtcod.LEFT, header)
+ 
+	#print all the options
+	y = header_height
+	letter_index = 1
+	for option_text in texts:
+		text = str(letter_index) + '. ' + option_text
+		libtcod.console_print_ex(window, 0, y, libtcod.BKGND_NONE, libtcod.LEFT, text)
+		y += 1
+		letter_index += 1
+
+	return window, width, height
+ 
+	# #blit the contents of "window" to the root console
+	# x = SCREEN_WIDTH/2 - width/2
+	# y = SCREEN_HEIGHT/2 - height/2
+	# libtcod.console_blit(window, 0, 0, width, height, 0, x, y, 1.0, 0.7)
+ 
+	# #present the root console to the player and wait for a key-press
+	# libtcod.console_flush()
+	# key = libtcod.console_wait_for_keypress(True)
+ 
+	# if key.vk == libtcod.KEY_ENTER and key.lalt:  #(special case) Alt+Enter: toggle fullscreen
+	# 	libtcod.console_set_fullscreen(not libtcod.console_is_fullscreen)
+ 
+	# #convert the ASCII code to an index; if it corresponds to an option, return it
+	# index = key.c - ord('a')
+	# if index >= 0 and index < len(options): return index
+	# return None
 
 
 def player_death(player):
@@ -1449,6 +1585,8 @@ def player_death(player):
 
 	#Put their score into a high score
 	score = dungeon_level
+
+	add_highscore(score)
 
  
 def monster_death(monster):
@@ -1761,10 +1899,12 @@ def new_game():
 	inventory = []
  
 
-
+	#Get the player's name
+	name = text_input("What is your name?")
+	player.playername = name
  
 	#a warm welcoming message!
-	message('Welcome stranger! Prepare to perish in the Tombs of the Ancient Kings.', libtcod.red)
+	message('Welcome ' + name + '! Prepare to perish in the Tombs of the Ancient Kings.', libtcod.red)
  
 	#initial equipment: a dagger
 	equipment_component = Equipment(slot='right hand', power_bonus=2)
@@ -1772,6 +1912,46 @@ def new_game():
 	inventory.append(obj)
 	equipment_component.equip()
 	obj.always_visible = True
+
+##New debug game
+def new_debug_game():
+	global player, inventory, game_msgs, game_state, dungeon_level, q, time
+ 
+	#create object representing the player
+	fighter_component = Fighter(hp=100, defense=1, power=2, xp=0, death_function=player_death)
+	player = Object(0, 0, '@', 'player', libtcod.white, blocks=True, fighter=fighter_component)
+ 
+	player.level = 1
+
+
+	#Set up the game timer!
+	time = 0
+	#create the list of game messages and their colors, starts empty
+	game_msgs = []
+ 
+	#generate map (at this point it's not drawn to the screen)
+	dungeon_level = 0
+	next_level()
+	#make_map()
+	#initialize_fov()
+ 
+	game_state = 'playing'
+	inventory = []
+ 
+
+	#Get the player's name
+	name = "Debugger"
+
+	#a warm welcoming message!
+	message('Welcome ' + name + '! Prepare to perish in the Tombs of the Ancient Kings.', libtcod.red)
+ 
+	#initial equipment: a dagger
+	equipment_component = Equipment(slot='right hand', power_bonus=2)
+	obj = Object(0, 0, '-', 'dagger', libtcod.sky, equipment=equipment_component)
+	inventory.append(obj)
+	equipment_component.equip()
+	obj.always_visible = True
+
  
 #advance to the next level
 def next_level():
@@ -1891,21 +2071,31 @@ def main_menu():
 		libtcod.console_print_ex(0, SCREEN_WIDTH/2, SCREEN_HEIGHT/2-4, libtcod.BKGND_NONE, libtcod.CENTER,
 								 'Steal all that junk!')
 		libtcod.console_print_ex(0, SCREEN_WIDTH/2, SCREEN_HEIGHT-2, libtcod.BKGND_NONE, libtcod.CENTER, 'By Toxy')
- 
+
+		#Show the scoreboard on the left!
+		scorewin, scorew, scoreh = show_highscores()
+		x = 2
+		y = 2
+		libtcod.console_blit(scorewin, 0, 0, scorew, scoreh, 0, x, y, 1.0, 0.7)
+		#libtcod.console_flush()
+
 		#show options and wait for the player's choice
-		choice = menu('', ['Play a new game', 'Continue last game', 'Quit'], 24)
+		choice = menu('', ['Play a new game', 'Continue last game', 'Start debug game', 'Quit'], 24)
  
 		if choice == 0:  #new game
 			new_game()
 			play_game()
-		if choice == 1:  #load last game
+		elif choice == 1:  #load last game
 			try:
 				load_game()
 			except:
 				msgbox('\n No saved game to load.\n', 24)
 				continue
 			play_game()
-		elif choice == 2:  #quit
+		elif choice == 2:  #start debug game
+			new_debug_game()
+			play_game()
+		elif choice == 3:  #quit
 			break
 
 #terminal12x12_gs_ro.png

@@ -18,9 +18,14 @@ Fix enemies with torches to always compute light right after they move (currentl
 	possibly negatively apply their light before they move, then positively do it after the move?
 
 scroll of speed
+	Make speed as an invisible equipment, rather than a object at -1, -1. This gives us a bonus rather than modifying base
 Confuse attack eachother
 
 archer that stays in light
+
+Make orb goblins spawn in light
+
+limit namelengths to 20
 
 ###### BIG ######
 
