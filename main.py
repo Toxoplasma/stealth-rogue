@@ -1430,11 +1430,11 @@ def add_highscore():
 	file = shelve.open('highscores', 'n')
 	scores = file['scores']
 
-	
+
 	#Add our score
 	#Write them back to the file
 
-def show_highscores():
+#def show_highscores():
 
 
 def player_death(player):
