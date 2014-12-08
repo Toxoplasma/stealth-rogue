@@ -55,7 +55,7 @@ class Object:
 	#it's always represented by a character on screen.
 	def __init__(self, x, y, char, name, color, \
 				blocks=False, always_visible=False, light_source=False, light_source_level=0, \
-				fighter=None, ai=None, item=None, equipment=None):
+				fighter=None, ai=None, item=None, equipment=None, light=None):
 		self.x = x
 		self.y = y
 		self.char = char
@@ -64,9 +64,6 @@ class Object:
 		self.blocks = blocks
 		self.always_visible = always_visible
 
-		self.light_source = light_source
-		self.light_source_level = light_source_level
-
 		self.fighter = fighter
 		if self.fighter:  #let the fighter component know who owns it
 			self.fighter.owner = self
@@ -74,6 +71,10 @@ class Object:
 		self.ai = ai
 		if self.ai:  #let the AI component know who owns it
 			self.ai.owner = self
+
+		self.light = light
+		if self.light:
+			self.light.owner = self
  
 		self.item = item
 		if self.item:  #let the Item component know who owns it
@@ -409,6 +410,9 @@ class LightOrbThrowerMonster:
 
 		return actiontime
 
+class Light:
+	def __init__(self, level):
+		self.level = level
 
 class Item:
 	#an item that can be picked up and used.
@@ -642,7 +646,7 @@ def rand_tile_in_sight(x, y):
 	return (tx, ty)
 
 #Get a random tile with cubic darkness bias
-def rand_tile_dark_bias():
+def rand_tile_dark_bias(power):
 	global map
 
 	def invalidChoice(x_, y_):
@@ -652,9 +656,30 @@ def rand_tile_dark_bias():
 	for j in range(0, MAP_HEIGHT):
 		for i in range (0, MAP_WIDTH):
 			if not invalidChoice(i, j):
-				chances[(i, j)] = (99 - map[i][j].light_level)**3 #do this so they don't get abandoned by orcs and have all 0s
+				chances[(i, j)] = (99 - map[i][j].light_level)**power #do this so they don't get abandoned by orcs and have all 0s
 	
 	return random_choice(chances)
+
+#Get a random tile that's totally dark
+#If it fails, just does cubic dark bias
+def rand_tile_darkest():
+	global map
+
+	def invalidChoice(x_, y_):
+		return is_blocked(x_, y_)
+
+	poss = []
+
+	for j in range(0, MAP_HEIGHT):
+		for i in range (0, MAP_WIDTH):
+			if map[i][j].light_level == LIGHT_MIN and not invalidChoice(i, j):
+				poss.append((i,j))
+
+	
+	if len(poss) > 0:
+		return random.choice(poss)
+
+	return rand_tile_dark_bias(3)
 
 def get_empty_tile():
 	global map
@@ -813,9 +838,11 @@ def make_map():
 	#Generate dungeon features
 	place_all_objects()
 
-	#Put the player down
+	#Calculate light
+	update_lights()
 
-	px, py = rand_tile_dark_bias()
+	#Put the player down
+	px, py = rand_tile_darkest()
 	player.x = px
 	player.y = py
 
@@ -846,21 +873,24 @@ def place_all_objects():
 
 		if choice == 'small torch':
 			#Create a throwable light orb!
+			l = Light(SMALL_TORCH_LSL)
 			feat = Object(x, y, '!', 'small torch', TORCH_COLOR,
 				#blocks=True, 
-				light_source=True, light_source_level = SMALL_TORCH_LSL)
+				light=l)
 
 		elif choice == 'torch':
 			#Create a throwable light orb!
+			l = Light(TORCH_LSL)
 			feat = Object(x, y, '!', 'torch', TORCH_COLOR,
 				#blocks=True, 
-				light_source=True, light_source_level = TORCH_LSL)
+				light = l)
 
 		elif choice == 'large torch':
 			#Create a throwable light orb!
+			l = Light(LARGE_TORCH_LSL)
 			feat = Object(x, y, '!', 'large torch', TORCH_COLOR,
 				#blocks=True, 
-				light_source=True, light_source_level = LARGE_TORCH_LSL)
+				light = l)
 
 
 		objects.append(feat)
@@ -979,18 +1009,20 @@ def place_all_objects():
 				#create an orc
 				fighter_component = Fighter(hp=ORC_HP, defense=ORC_DEF, power=ORC_POW, xp=ORC_XP, death_function=monster_death)
 				ai_component = BasicMonster()
+				l = Light(ORC_LSL)
 
 				monster = Object(x, y, 'o', 'orc', ORC_COLOR,
-								 blocks=True, light_source=True, light_source_level=ORC_LSL, #TODO: Add them actually carrying torches, not just lights
+								 blocks=True, light = l, #TODO: Add them actually carrying torches, not just lights
 								 fighter=fighter_component, ai=ai_component)
  
 			elif choice == 'goblin':
 				#create a goblin
 				fighter_component = Fighter(hp=GOBLIN_HP, defense=GOBLIN_DEF, power=GOBLIN_POW, xp=GOBLIN_XP, death_function=monster_death)
 				ai_component = BasicMonster()
+				l = Light(GOBLIN_LSL)
 
 				monster = Object(x, y, 'g', 'goblin', GOBLIN_COLOR,
-								 blocks=True, light_source=True, light_source_level=GOBLIN_LSL, #TODO: Add them actually carrying torches, not just lights
+								 blocks=True, light = l, #TODO: Add them actually carrying torches, not just lights
 								 fighter=fighter_component, ai=ai_component)
 
 			elif choice == 'orb goblin':
@@ -1122,8 +1154,8 @@ def update_lights():
 
 	#For every light source...
 	for obj in objects:
-		if obj.light_source:
-			LSL = obj.light_source_level
+		if obj.light:
+			LSL = obj.light.level
 
 			#Calculate a new fov map from that location
 			startx = max(obj.x - abs(LSL), 0)
@@ -1602,7 +1634,7 @@ def monster_death(monster):
 	monster.blocks = False
 	monster.fighter = None
 	monster.ai = None
-	monster.light_source = False
+	monster.light_source = None
 	monster.name = 'remains of ' + monster.name
 	monster.send_to_back()
  
@@ -1691,8 +1723,9 @@ def throw_light_orb():
 	#TODO: make this land a bit randomly
 	#TODO: make this stop being lit eventually
 	orb_ai = LightDarkOrb(LIGHT_ORB_TICK_TIME)
+	l = Light(LIGHT_ORB_LSL)
 	lit_orb = Object(player.x, player.y, '*', 'light orb', LIGHT_ORB_THROWN_COLOR, 
-			light_source = True, light_source_level = LIGHT_ORB_LSL, ai = orb_ai)
+			light = l, ai = orb_ai)
 	throw_object(lit_orb, player.x, player.y, x, y)
 	objects.append(lit_orb)
 	lit_orb.send_to_back()
@@ -1712,8 +1745,9 @@ def throw_dark_orb():
 	#TODO: make this land a bit randomly
 	#TODO: make this stop being lit eventually
 	orb_ai = LightDarkOrb(DARK_ORB_TICK_TIME)
+	l = LIGHT(DARK_ORB_LSL)
 	lit_orb = Object(player.x, player.y, '*', 'dark orb', DARK_ORB_THROWN_COLOR, 
-				light_source = True, light_source_level = DARK_ORB_LSL, ai = orb_ai)
+				light = l, ai = orb_ai)
 	throw_object(lit_orb, player.x, player.y, x, y)
 	objects.append(lit_orb)
 	lit_orb.send_to_back()
