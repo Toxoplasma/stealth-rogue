@@ -1191,31 +1191,34 @@ def update_lights():
 
 			map[x][y].light_level = newL
 
+def update_light_at_location(tx, ty, LSL):
+
+	#Calculate a new fov map from that location
+	startx = max(tx - abs(LSL), 0)
+	starty = max(ty - abs(LSL), 0)
+	endx = min(tx + abs(LSL) + 1, MAP_WIDTH)
+	endy = min(ty + abs(LSL) + 1, MAP_HEIGHT)
+
+	obj_fov_map = copy_submap_to_fov_map(startx, starty, endx - startx, endy - starty)
+	libtcod.map_compute_fov(obj_fov_map, tx - startx, ty - starty, abs(LSL), FOV_LIGHT_WALLS, FOV_ALGO)
+
+	#Get distance to each tile
+	for y in range(starty, endy):
+		for x in range(startx, endx):
+			blocked = not libtcod.map_is_in_fov(obj_fov_map, x - startx, y - starty)
+			# #If that tile is seeable from the light source
+			if not blocked:
+				#Update it's light value!
+				oldL = map[x][y].light_level
+				sign = math.copysign(1, LSL)
+				newL = oldL + int(sign * (100 - (100/abs(LSL)) * pythdist(tx, ty, x, y)))
+				map[x][y].light_level = newL
+
 def add_light(obj):
 	global map
 	if obj.light:
-		LSL = obj.light.level
-
-		#Calculate a new fov map from that location
-		startx = max(obj.x - abs(LSL), 0)
-		starty = max(obj.y - abs(LSL), 0)
-		endx = min(obj.x + abs(LSL) + 1, MAP_WIDTH)
-		endy = min(obj.y + abs(LSL) + 1, MAP_HEIGHT)
-
-		obj_fov_map = copy_submap_to_fov_map(startx, starty, endx - startx, endy - starty)
-		libtcod.map_compute_fov(obj_fov_map, obj.x - startx, obj.y - starty, abs(LSL), FOV_LIGHT_WALLS, FOV_ALGO)
-
-		#Get distance to each tile
-		for y in range(starty, endy):
-			for x in range(startx, endx):
-				blocked = not libtcod.map_is_in_fov(obj_fov_map, x - startx, y - starty)
-				# #If that tile is seeable from the light source
-				if not blocked:
-					#Update it's light value!
-					oldL = map[x][y].light_level
-					sign = math.copysign(1, LSL)
-					newL = oldL + int(sign * (100 - (100/abs(LSL)) * pythdist(obj.x, obj.y, x, y)))
-					map[x][y].light_level = newL
+		update_light_at_location(obj.x, obj.y, obj.light.level)
+		
 
 def get_light(x, y):
 	global map
@@ -1229,28 +1232,7 @@ def get_light(x, y):
 def remove_light(obj):
 	global map
 	if obj.light:
-		LSL = -1 * obj.light.level
-
-		#Calculate a new fov map from that location
-		startx = max(obj.x - abs(LSL), 0)
-		starty = max(obj.y - abs(LSL), 0)
-		endx = min(obj.x + abs(LSL) + 1, MAP_WIDTH)
-		endy = min(obj.y + abs(LSL) + 1, MAP_HEIGHT)
-
-		obj_fov_map = copy_submap_to_fov_map(startx, starty, endx - startx, endy - starty)
-		libtcod.map_compute_fov(obj_fov_map, obj.x - startx, obj.y - starty, abs(LSL), FOV_LIGHT_WALLS, FOV_ALGO)
-
-		#Get distance to each tile
-		for y in range(starty, endy):
-			for x in range(startx, endx):
-				blocked = not libtcod.map_is_in_fov(obj_fov_map, x - startx, y - starty)
-				# #If that tile is seeable from the light source
-				if not blocked:
-					#Update it's light value!
-					oldL = map[x][y].light_level
-					sign = math.copysign(1, LSL)
-					newL = oldL + int(sign * (100 - (100/abs(LSL)) * pythdist(obj.x, obj.y, x, y)))
-					map[x][y].light_level = newL
+		update_light_at_location(obj.x, obj.y, -1 * obj.light.level)
 
 def update_fov():
 	libtcod.map_compute_fov(fov_map, player.x, player.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGO)
@@ -2138,12 +2120,8 @@ def play_game():
 					print unit.name + " moving at time " + str(time)
 
 					remove_light(unit)
-
 					turntime = unit.ai.take_turn()
 					add_light(unit)
-
-
-					#fov_recompute = True
 
 					#Readd to movement queue
 					if turntime >= 0:
