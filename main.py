@@ -1232,6 +1232,9 @@ def render_all():
  
 		#recompute FOV if needed (the player moved or something)
 		update_fov()
+
+		#Generate colormap
+		colormap = [[[0, 0, 0] for y in range(0, MAP_HEIGHT)] for x in range(0, MAP_WIDTH)]
  
 		#go through all tiles, and set their background color according to the FOV
 		for y in range(MAP_HEIGHT):
@@ -1242,19 +1245,28 @@ def render_all():
 					#if it's not visible right now, the player can only see it if it's explored
 					if map[x][y].explored:
 						(r, g, b) = map[x][y].dark_color
-						color = libtcod.Color(r, g, b)
-						libtcod.console_set_char_background(con, x, y, color, libtcod.BKGND_SET)
+						colormap[x][y][0] += r
+						colormap[x][y][1] += g
+						colormap[x][y][2] += b
 				else:
 					#it's visible
-					(r, g, b) = map[x][y].light_color
 					light = map[x][y].light_level
 					#light = rand_lin_fluc(light) #Randomly fluctuate a little, for style points
-					color = libtcod.Color(int(r + R_FACTOR*light), 
-										  int(g + G_FACTOR*light), 
-										  int(b + B_FACTOR*light))
-					libtcod.console_set_char_background(con, x, y, color, libtcod.BKGND_SET)
-						#since it's visible, mark it as explored
+					(r, g, b) = map[x][y].light_color
+
+					colormap[x][y][0] += r + R_FACTOR*light
+					colormap[x][y][1] += g + G_FACTOR*light
+					colormap[x][y][2] += b + B_FACTOR*light
+					
+					#since it's visible, mark it as explored
 					map[x][y].explored = True
+
+		for y in range(MAP_HEIGHT):
+			for x in range(MAP_WIDTH):
+				color = libtcod.Color(int(colormap[x][y][0]), 
+									  int(colormap[x][y][1]), 
+									  int(colormap[x][y][2]))
+				libtcod.console_set_char_background(con, x, y, color, libtcod.BKGND_SET)
  
 	#draw all objects in the list, except the player. we want it to
 	#always appear over all other objects! so it's drawn later.
