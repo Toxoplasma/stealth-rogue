@@ -1214,8 +1214,9 @@ def update_light_at_location(tx, ty, LSL):
 				oldL = map[x][y].light_level
 				sign = math.copysign(1, LSL)
 				modifier = sign * (abs(center_level) - (abs(center_level)/abs(LSL)) * pythdist(tx, ty, x, y))
-				newL = oldL + int(modifier)
-				map[x][y].light_level = newL
+				if modifier * sign > 0:
+					newL = oldL + int(modifier)
+					map[x][y].light_level = newL
 
 def add_light(obj):
 	global map
