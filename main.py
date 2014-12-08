@@ -1217,9 +1217,16 @@ def add_light(obj):
 					newL = oldL + int(sign * (100 - (100/abs(LSL)) * pythdist(obj.x, obj.y, x, y)))
 					map[x][y].light_level = newL
 
+def get_light(x, y):
+	global map
 
+	l = map[x][y].light_level
+	l = min(LIGHT_MAX, l)
+	l = max(LIGHT_MIN, l)
 
-def remove_light(object):
+	return l
+
+def remove_light(obj):
 	global map
 	if obj.light:
 		LSL = -1 * obj.light.level
@@ -1258,49 +1265,49 @@ def render_all():
 		fov_recompute = False
 
 		#Compute light levels
-		update_lights()
+		#update_lights()
 		
 		#recompute FOV if needed (the player moved or something)
 		update_fov()
 
-		#Generate colormap
-		colormap = [[[0, 0, 0] for y in range(0, MAP_HEIGHT)] for x in range(0, MAP_WIDTH)]
- 
-		#go through all tiles, and set their background color according to the FOV
-		for y in range(MAP_HEIGHT):
-			for x in range(MAP_WIDTH):
-				LOS = libtcod.map_is_in_fov(fov_map, x, y)
-				visible = LOS and ((map[x][y].light_level > MIN_TILE_LIGHT_LEVEL) or (pythdist(x, y, player.x, player.y) < VISION_DISTANCE_WITHOUT_LIGHT))
-				if not visible:
-					#if it's not visible right now, the player can only see it if it's explored
-					if map[x][y].explored:
-						(r, g, b) = map[x][y].dark_color
-						colormap[x][y][0] += r
-						colormap[x][y][1] += g
-						colormap[x][y][2] += b
-				else:
-					#it's visible
-					light = map[x][y].light_level
+	#Generate colormap
+	colormap = [[[0, 0, 0] for y in range(0, MAP_HEIGHT)] for x in range(0, MAP_WIDTH)]
 
-					#Don't show light levels on walls, makes it too confusing
-					if map[x][y].blocked:
-						light = 0 #light / 2 #/2 is nice but you can see through walls...
-					#light = rand_lin_fluc(light) #Randomly fluctuate a little, for style points
-					(r, g, b) = map[x][y].light_color
+	#go through all tiles, and set their background color according to the FOV
+	for y in range(MAP_HEIGHT):
+		for x in range(MAP_WIDTH):
+			LOS = libtcod.map_is_in_fov(fov_map, x, y)
+			visible = LOS and ((map[x][y].light_level > MIN_TILE_LIGHT_LEVEL) or (pythdist(x, y, player.x, player.y) < VISION_DISTANCE_WITHOUT_LIGHT))
+			if not visible:
+				#if it's not visible right now, the player can only see it if it's explored
+				if map[x][y].explored:
+					(r, g, b) = map[x][y].dark_color
+					colormap[x][y][0] += r
+					colormap[x][y][1] += g
+					colormap[x][y][2] += b
+			else:
+				#it's visible
+				light = get_light(x, y)
 
-					colormap[x][y][0] += r + R_FACTOR*light
-					colormap[x][y][1] += g + G_FACTOR*light
-					colormap[x][y][2] += b + B_FACTOR*light
-					
-					#since it's visible, mark it as explored
-					map[x][y].explored = True
+				#Don't show light levels on walls, makes it too confusing
+				if map[x][y].blocked:
+					light = 0 #light / 2 #/2 is nice but you can see through walls...
+				#light = rand_lin_fluc(light) #Randomly fluctuate a little, for style points
+				(r, g, b) = map[x][y].light_color
 
-		for y in range(MAP_HEIGHT):
-			for x in range(MAP_WIDTH):
-				color = libtcod.Color(int(colormap[x][y][0]), 
-									  int(colormap[x][y][1]), 
-									  int(colormap[x][y][2]))
-				libtcod.console_set_char_background(con, x, y, color, libtcod.BKGND_SET)
+				colormap[x][y][0] += r + R_FACTOR*light
+				colormap[x][y][1] += g + G_FACTOR*light
+				colormap[x][y][2] += b + B_FACTOR*light
+				
+				#since it's visible, mark it as explored
+				map[x][y].explored = True
+
+	for y in range(MAP_HEIGHT):
+		for x in range(MAP_WIDTH):
+			color = libtcod.Color(int(colormap[x][y][0]), 
+								  int(colormap[x][y][1]), 
+								  int(colormap[x][y][2]))
+			libtcod.console_set_char_background(con, x, y, color, libtcod.BKGND_SET)
  
 	#draw all objects in the list, except the player. we want it to
 	#always appear over all other objects! so it's drawn later.
@@ -1693,7 +1700,7 @@ def monster_death(monster):
 	#transform it into a nasty corpse! it doesn't block, can't be
 	#attacked and doesn't move
 	msg = 'The ' + monster.name + ' is dead!'
-	if monster.light_source:
+	if monster.light:
 		msg += " Its torch falls to the ground and gutters out."
 	message(msg, libtcod.orange)
 
@@ -2130,8 +2137,13 @@ def play_game():
 
 					print unit.name + " moving at time " + str(time)
 
+					remove_light(unit)
+
 					turntime = unit.ai.take_turn()
-					fov_recompute = True
+					add_light(unit)
+
+
+					#fov_recompute = True
 
 					#Readd to movement queue
 					if turntime >= 0:
