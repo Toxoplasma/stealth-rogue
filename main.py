@@ -505,8 +505,8 @@ class LightDarkOrb:
 		global objects, q
 
 		orb = self.owner
-		if orb.light_source:
-			LSL = orb.light_source_level
+		if orb.light:
+			LSL = orb.light.level
 			sign = math.copysign(1, LSL)
 
 			newLSL = int(sign * (abs(LSL) - 1))
@@ -518,7 +518,7 @@ class LightDarkOrb:
 				oremove(orb)
 				return -1 #don't add it to q again
 
-			orb.light_source_level = newLSL
+			orb.light.level = newLSL
 
 			print "  orb LSL: " + str(newLSL)
 
@@ -1044,7 +1044,7 @@ def place_all_objects():
  
 			objects.append(monster)
 
-			qinsert(monster, time + 2) #player gets inserted at 1, monsters at 2
+			qinsert(monster, time + 1) #player gets inserted at 1, monsters at 2
 
 	print "Generated " + str(num_features) + " features"
 	print "Generated " + str(num_items) + " items"
@@ -1997,7 +1997,7 @@ def next_level():
 	dungeon_level += 1
 
 	#Reset the movement queue to just the player
-	q = [(player, time + 1)]
+	q = [(player, time + 2)]
 
 	make_map()  #create a fresh new level!
 	initialize_fov()
