@@ -33,7 +33,7 @@ MAP_HEIGHT = 50
 #parameters for dungeon generator
 ROOM_MAX_SIZE = 15 #15
 ROOM_MIN_SIZE = 4 #6
-MAX_ROOMS = 20
+MAX_ROOMS = 50
 
 NUM_MONSTERS = [[5, 1], [10, 2], [15, 4], [25, 6], [35, 8], [50, 10], [80, 13]]
 NUM_ITEMS = [[5, 1], [10, 5], [15, 7]]
@@ -102,7 +102,7 @@ FLASHBANG_CHANCE = [[10, 1], [15, 3], [20, 5]]
 FLASHBANG_RADIUS = 5
 FLASHBANG_LENGTH = 8
 
-SPEED_CHANCE = [[10, 1], [20, 4]]
+SPEED_CHANCE = [[1000, 1], [20, 4]]
 SPEED_MUL = 0.5
 SPEED_TICK_TIME = 50
 SPEED_TICK_NUM = 5

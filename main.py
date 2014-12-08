@@ -645,7 +645,7 @@ def rand_tile_in_sight(x, y):
 
 	return (tx, ty)
 
-#Get a random tile with cubic darkness bias
+#Get a random tile with darkness bias
 def rand_tile_dark_bias(power):
 	global map
 
@@ -657,6 +657,21 @@ def rand_tile_dark_bias(power):
 		for i in range (0, MAP_WIDTH):
 			if not invalidChoice(i, j):
 				chances[(i, j)] = (99 - map[i][j].light_level)**power #do this so they don't get abandoned by orcs and have all 0s
+	
+	return random_choice(chances)
+
+#Get a random empty tile with light bias
+def rand_tile_light_bias(power):
+	global map
+
+	def invalidChoice(x_, y_):
+		return is_blocked(x_, y_)
+
+	chances = {}
+	for j in range(0, MAP_HEIGHT):
+		for i in range (0, MAP_WIDTH):
+			if not invalidChoice(i, j):
+				chances[(i, j)] = (map[i][j].light_level + 1)**power #do this so they don't get abandoned by orcs and have all 0s
 	
 	return random_choice(chances)
 
@@ -897,6 +912,10 @@ def place_all_objects():
 		feat.send_to_back()  #items appear below other objects
 
 
+	#Redo lighting so we can spawn relevant monsters in the right places
+	update_lights()
+
+
 	####Items
 	#maximum number of items per floor
  
@@ -1026,6 +1045,9 @@ def place_all_objects():
 								 fighter=fighter_component, ai=ai_component)
 
 			elif choice == 'orb goblin':
+				#Redo x, y to be light-biased
+
+				x,y = rand_tile_light_bias(3) #cubic bias
 				#create a goblin
 				fighter_component = Fighter(hp=ORB_GOBLIN_HP, defense=ORB_GOBLIN_DEF, power=ORB_GOBLIN_POW, xp=ORB_GOBLIN_XP, death_function=monster_death)
 				ai_component = LightOrbThrowerMonster()
@@ -1044,7 +1066,7 @@ def place_all_objects():
  
 			objects.append(monster)
 
-			qinsert(monster, time + 1) #player gets inserted at 1, monsters at 2
+			qinsert(monster, time + 2) #player gets inserted at 1, monsters at 2
 
 	print "Generated " + str(num_features) + " features"
 	print "Generated " + str(num_items) + " items"
@@ -1182,7 +1204,7 @@ def update_lights():
 	for x in range(MAP_WIDTH):
 		for y in range(MAP_HEIGHT):
 			oldL = map[x][y].light_level
-			newL = min(LIGHT_MAX, oldL)
+			newL = newL = min(LIGHT_MAX, oldL)
 			newL = max(LIGHT_MIN, newL)
 
 			if map[x][y].blocked:
@@ -1634,7 +1656,7 @@ def monster_death(monster):
 	monster.blocks = False
 	monster.fighter = None
 	monster.ai = None
-	monster.light_source = None
+	monster.light = None
 	monster.name = 'remains of ' + monster.name
 	monster.send_to_back()
  
@@ -1745,7 +1767,7 @@ def throw_dark_orb():
 	#TODO: make this land a bit randomly
 	#TODO: make this stop being lit eventually
 	orb_ai = LightDarkOrb(DARK_ORB_TICK_TIME)
-	l = LIGHT(DARK_ORB_LSL)
+	l = Light(DARK_ORB_LSL)
 	lit_orb = Object(player.x, player.y, '*', 'dark orb', DARK_ORB_THROWN_COLOR, 
 				light = l, ai = orb_ai)
 	throw_object(lit_orb, player.x, player.y, x, y)
@@ -1766,12 +1788,12 @@ def throw_water_balloon():
 	message('The water balloon bursts, dampening everything around it!', libtcod.light_blue)
  
 	for obj in objects:  #damage every fighter in range, including the player
-		if obj.distance(x, y) <= WATERBALLOON_RADIUS and obj.light_source:
+		if obj.distance(x, y) <= WATERBALLOON_RADIUS and obj.light:
 			if obj.ai:
 				message('The ' + obj.name + '\'s torch goes out!', libtcod.light_blue)
 			else:
 				message('The ' + obj.name + ' goes out!', libtcod.light_blue)
-			obj.light_source = False
+			obj.light = None
 			fov_recompute = True
 
 def cast_heal():
@@ -1908,7 +1930,7 @@ def load_game():
  
 
 ##New game
-def new_game():
+def new_game(name = ""):
 	global player, inventory, game_msgs, game_state, dungeon_level, q, time
  
 	#create object representing the player
@@ -1916,6 +1938,8 @@ def new_game():
 	player = Object(0, 0, '@', 'player', libtcod.white, blocks=True, fighter=fighter_component)
  
 	player.level = 1
+
+	inventory = []
 
 
 	#Set up the game timer!
@@ -1930,11 +1954,10 @@ def new_game():
 	#initialize_fov()
  
 	game_state = 'playing'
-	inventory = []
- 
 
 	#Get the player's name
-	name = text_input("What is your name?")
+	if name == "":
+		name = text_input("What is your name?")
 	player.playername = name
  
 	#a warm welcoming message!
@@ -1949,47 +1972,12 @@ def new_game():
 
 ##New debug game
 def new_debug_game():
-	global player, inventory, game_msgs, game_state, dungeon_level, q, time
- 
-	#create object representing the player
-	fighter_component = Fighter(hp=100, defense=1, power=2, xp=0, death_function=player_death)
-	player = Object(0, 0, '@', 'player', libtcod.white, blocks=True, fighter=fighter_component)
- 
-	player.level = 1
-
-
-	#Set up the game timer!
-	time = 0
-	#create the list of game messages and their colors, starts empty
-	game_msgs = []
- 
-	#generate map (at this point it's not drawn to the screen)
-	dungeon_level = 0
-	next_level()
-	#make_map()
-	#initialize_fov()
- 
-	game_state = 'playing'
-	inventory = []
- 
-
-	#Get the player's name
-	name = "Debugger"
-
-	#a warm welcoming message!
-	message('Welcome ' + name + '! Prepare to perish in the Tombs of the Ancient Kings.', libtcod.red)
- 
-	#initial equipment: a dagger
-	equipment_component = Equipment(slot='right hand', power_bonus=2)
-	obj = Object(0, 0, '-', 'dagger', libtcod.sky, equipment=equipment_component)
-	inventory.append(obj)
-	equipment_component.equip()
-	obj.always_visible = True
+	new_game("Debugger")
 
  
 #advance to the next level
 def next_level():
-	global dungeon_level, q, time
+	global dungeon_level, q, time, inventory
 	message('You descend deeper into the dungeon')
 	#message('You take a moment to rest, and recover your strength.', libtcod.light_violet)
 	#player.fighter.heal(player.fighter.max_hp / 2)  #heal the player by 50%
@@ -1997,12 +1985,16 @@ def next_level():
 	dungeon_level += 1
 
 	#Reset the movement queue to just the player
-	q = [(player, time + 2)]
+	q = [(player, time + 1)]
+
+	#If the player has any items with timed, put them in the queue
+	for item in inventory:
+		if item.ai:
+			qinsert(item, time + 2)
 
 	make_map()  #create a fresh new level!
 	initialize_fov()
 
-		#Movement/action/event queue
 	
 ##Fov
 def copy_submap_to_fov_map(startx, starty, width, height):
@@ -2036,7 +2028,14 @@ def play_game():
 	global key, mouse
 	global fov_recompute
 	global q, time
- 
+
+	#Give all monsters a free step to compute their destinations
+	for unit in objects:
+		if unit.ai:
+			unit.ai.take_turn()
+			fov_recompute = True
+
+			
 	player_action = None
  
 	mouse = libtcod.Mouse()
