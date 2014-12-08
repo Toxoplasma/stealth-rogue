@@ -50,6 +50,8 @@ TORCH_RADIUS = 0 #infinite
 LIGHT_MAX = 100
 LIGHT_MIN = 0
 
+LIGHT_STRENGTH = 10 #Gets multiplied by LSLs to produce actual light amount provided
+
 MIN_ITEM_LIGHT_LEVEL = 0
 MIN_TILE_LIGHT_LEVEL = 0
 

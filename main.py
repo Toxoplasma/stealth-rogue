@@ -1193,6 +1193,8 @@ def update_lights():
 
 def update_light_at_location(tx, ty, LSL):
 
+	center_level = LSL * LIGHT_STRENGTH
+
 	#Calculate a new fov map from that location
 	startx = max(tx - abs(LSL), 0)
 	starty = max(ty - abs(LSL), 0)
@@ -1211,7 +1213,8 @@ def update_light_at_location(tx, ty, LSL):
 				#Update it's light value!
 				oldL = map[x][y].light_level
 				sign = math.copysign(1, LSL)
-				newL = oldL + int(sign * (100 - (100/abs(LSL)) * pythdist(tx, ty, x, y)))
+				modifier = sign * (abs(center_level) - (abs(center_level)/abs(LSL)) * pythdist(tx, ty, x, y))
+				newL = oldL + int(modifier)
 				map[x][y].light_level = newL
 
 def add_light(obj):
@@ -1231,6 +1234,7 @@ def get_light(x, y):
 
 def remove_light(obj):
 	global map
+	print "removing light from " + obj.name
 	if obj.light:
 		update_light_at_location(obj.x, obj.y, -1 * obj.light.level)
 
