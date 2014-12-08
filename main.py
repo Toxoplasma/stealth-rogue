@@ -1198,6 +1198,7 @@ def update_lights():
 			map[x][y].light_level = newL
 
 def update_light_at_location(tx, ty, LSL):
+	global map
 
 	center_level = LSL * LIGHT_STRENGTH
 
@@ -1305,6 +1306,7 @@ def render_all():
 	#always appear over all other objects! so it's drawn later.
 	for object in objects:
 		if object != player:
+			#print "Drawing " + object.name + " at " + str((object.x, object.y))
 			object.draw()
 	player.draw_always()
  
@@ -1847,7 +1849,7 @@ def throw_water_balloon():
 				message('The ' + obj.name + ' goes out!', libtcod.light_blue)
 
 			remove_light(obj)
-			
+
 			obj.light = None
 			fov_recompute = True
 
@@ -1923,14 +1925,23 @@ def cast_speed():
 
 	message("You feel lightning fast!")
 
-	
+
 ##Queue stuff
 #Insert into q at time t
 def qinsert(o, t):
 	global q
 
+	#print "QUEUEUEUEUE"
+
+	#print q
+
+	s = "q: "
+	for (obj, movetime) in q:
+		s += str((obj.name, movetime)) + ", "
+	print s
+
 	i = 0
-	while i < len(q) and t > q[i][1]:
+	while i < len(q) and t >= q[i][1]:
 		i += 1
 
 	q.insert(i, (o, t))
@@ -1955,6 +1966,16 @@ def oremove(o):
 
 ##Saving and ##loading
 def save_game():
+	global objects
+	print "Saving game..."
+
+	#Make each object in the queue remember its position
+	for obj in objects:
+		obj.in_q = False
+	for (obj, movetime) in q:
+		obj.in_q = True
+		obj.next_move = movetime
+
 	#open a new empty shelve (possibly overwriting an old one) to write the game data
 	file = shelve.open('savegame', 'n')
 	file['map'] = map
@@ -1965,13 +1986,18 @@ def save_game():
 	file['game_msgs'] = game_msgs
 	file['game_state'] = game_state
 	file['dungeon_level'] = dungeon_level
-	file['q'] = q
+	#file['q'] = q
 	file['time'] = time
 	file.close()
+
+	for object in objects:
+		print "  " + object.name + ": " + str((object.x, object.y))
  
 def load_game():
 	#open the previously saved shelve and load the game data
 	global map, objects, player, stairs, inventory, game_msgs, game_state, dungeon_level, q, time
+
+	print "Loading game..."
  
 	file = shelve.open('savegame', 'r')
 	map = file['map']
@@ -1982,12 +2008,23 @@ def load_game():
 	game_msgs = file['game_msgs']
 	game_state = file['game_state']
 	dungeon_level = file['dungeon_level']
+	#q = file['q']
 	time = file['time']
-	q = file['q']
 	file.close()
+
+	print "  Loaded variables, initializing FOV and lights..."
  
 	initialize_fov()
+	update_lights()
+
+	print "  Rebuilding queue..."
+	#Rebuild the queue
+	q = [(player, time)]
  
+ 	for obj in objects:
+		if obj != player and obj.in_q:
+			print "    Inserting " + obj.name + " into queue at time " + str(obj.next_move)
+			qinsert(obj, obj.next_move)
 
 ##New game
 def new_game(name = ""):
@@ -2093,8 +2130,6 @@ def play_game():
 	for unit in objects:
 		if unit.ai:
 			unit.ai.take_turn()
-			fov_recompute = True
-
 			
 	player_action = None
  
@@ -2174,7 +2209,7 @@ def main_menu():
 		#libtcod.console_flush()
 
 		#show options and wait for the player's choice
-		choice = menu('', ['Play a new game', 'Continue last game', 'Start debug game', 'Quit'], 24)
+		choice = menu('', ['Play a new game', 'Continue last saved game', 'Start debug game', 'Save and quit'], 24)
  
 		if choice == 0:  #new game
 			new_game()
