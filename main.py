@@ -371,7 +371,7 @@ class LightOrbThrowerMonster:
 
 		elif could_see_player: #It couldn't see you, so it tries to throw an orb
 			self.can_see_player = False
-			message("The " + monster.name + " lost sight of you.", libtcod.red)
+			message("The " + monster.name + " lost sight of you.", libtcod.green)
 
 			if time > self.last_throw + ORB_GOBLIN_THROW_RATE:
 				message("The " + monster.name + " throws a light orb!", libtcod.orange)
@@ -1595,7 +1595,7 @@ def add_highscore(score):
 
 		#Insert score
 		i = 0
-		while i < len(q) and score <= scores[i][1]:
+		while i < len(scores) and score <= scores[i][1]:
 			i += 1
 
 		scores.insert(i, (playername, score))
@@ -1623,9 +1623,10 @@ def show_highscores():
 	#Format them into an array of lines
 
 	texts = []
-	for (name, score) in scores[0 : min(25, len(scores))]:
-		spacecount = max(20 - len(name), 0)
-		texts.append(name + (' ' * spacecount) + str(score))
+	for i in range(0, min(25, len(scores))): #(name, score) in scores[0 : min(25, len(scores))]:
+		(name, score) = scores[i]
+		spacecount = max(20 - len(name) - len(str(i)), 0)
+		texts.append(str(i) + ". " + name + (' ' * spacecount) + str(score))
 	#menu("High Scores", texts, SCORE_WIDTH)
 
 	#calculate total height for the header (after auto-wrap) and one line per option
@@ -1647,7 +1648,7 @@ def show_highscores():
 	y = header_height
 	letter_index = 1
 	for option_text in texts:
-		text = str(letter_index) + '. ' + option_text
+		text = option_text
 		libtcod.console_print_ex(window, 0, y, libtcod.BKGND_NONE, libtcod.LEFT, text)
 		y += 1
 		letter_index += 1
@@ -1794,6 +1795,9 @@ def throw_light_orb():
 	lit_orb = Object(player.x, player.y, '*', 'light orb', LIGHT_ORB_THROWN_COLOR, 
 			light = l, ai = orb_ai)
 	throw_object(lit_orb, player.x, player.y, x, y)
+
+	add_light(lit_orb)
+
 	objects.append(lit_orb)
 	lit_orb.send_to_back()
 
@@ -1816,6 +1820,9 @@ def throw_dark_orb():
 	lit_orb = Object(player.x, player.y, '*', 'dark orb', DARK_ORB_THROWN_COLOR, 
 				light = l, ai = orb_ai)
 	throw_object(lit_orb, player.x, player.y, x, y)
+
+	add_light(lit_orb)
+
 	objects.append(lit_orb)
 	lit_orb.send_to_back()
 
@@ -1838,6 +1845,9 @@ def throw_water_balloon():
 				message('The ' + obj.name + '\'s torch goes out!', libtcod.light_blue)
 			else:
 				message('The ' + obj.name + ' goes out!', libtcod.light_blue)
+
+			remove_light(obj)
+			
 			obj.light = None
 			fov_recompute = True
 
