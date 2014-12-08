@@ -1177,28 +1177,7 @@ def update_lights():
 	#For every light source...
 	for obj in objects:
 		if obj.light:
-			LSL = obj.light.level
-
-			#Calculate a new fov map from that location
-			startx = max(obj.x - abs(LSL), 0)
-			starty = max(obj.y - abs(LSL), 0)
-			endx = min(obj.x + abs(LSL) + 1, MAP_WIDTH)
-			endy = min(obj.y + abs(LSL) + 1, MAP_HEIGHT)
-
-			obj_fov_map = copy_submap_to_fov_map(startx, starty, endx - startx, endy - starty)
-			libtcod.map_compute_fov(obj_fov_map, obj.x - startx, obj.y - starty, abs(LSL), FOV_LIGHT_WALLS, FOV_ALGO)
-
-			#Get distance to each tile
-			for y in range(starty, endy):
-				for x in range(startx, endx):
-					blocked = not libtcod.map_is_in_fov(obj_fov_map, x - startx, y - starty)
-					# #If that tile is seeable from the light source
-					if not blocked:
-						#Update it's light value!
-						oldL = map[x][y].light_level
-						sign = math.copysign(1, LSL)
-						newL = oldL + int(sign * (100 - (100/abs(LSL)) * pythdist(obj.x, obj.y, x, y)))
-						map[x][y].light_level = newL
+			add_light(obj)
 
 	#Bound everything
 	for x in range(MAP_WIDTH):
@@ -1207,11 +1186,64 @@ def update_lights():
 			newL = newL = min(LIGHT_MAX, oldL)
 			newL = max(LIGHT_MIN, newL)
 
-			if map[x][y].blocked:
-				newL = min(1, newL) #Make walls not show light levels
+			#if map[x][y].blocked:
+			#	newL = min(1, newL) #Make walls not show light levels
 
 			map[x][y].light_level = newL
 
+def add_light(obj):
+	global map
+	if obj.light:
+		LSL = obj.light.level
+
+		#Calculate a new fov map from that location
+		startx = max(obj.x - abs(LSL), 0)
+		starty = max(obj.y - abs(LSL), 0)
+		endx = min(obj.x + abs(LSL) + 1, MAP_WIDTH)
+		endy = min(obj.y + abs(LSL) + 1, MAP_HEIGHT)
+
+		obj_fov_map = copy_submap_to_fov_map(startx, starty, endx - startx, endy - starty)
+		libtcod.map_compute_fov(obj_fov_map, obj.x - startx, obj.y - starty, abs(LSL), FOV_LIGHT_WALLS, FOV_ALGO)
+
+		#Get distance to each tile
+		for y in range(starty, endy):
+			for x in range(startx, endx):
+				blocked = not libtcod.map_is_in_fov(obj_fov_map, x - startx, y - starty)
+				# #If that tile is seeable from the light source
+				if not blocked:
+					#Update it's light value!
+					oldL = map[x][y].light_level
+					sign = math.copysign(1, LSL)
+					newL = oldL + int(sign * (100 - (100/abs(LSL)) * pythdist(obj.x, obj.y, x, y)))
+					map[x][y].light_level = newL
+
+
+
+def remove_light(object):
+	global map
+	if obj.light:
+		LSL = -1 * obj.light.level
+
+		#Calculate a new fov map from that location
+		startx = max(obj.x - abs(LSL), 0)
+		starty = max(obj.y - abs(LSL), 0)
+		endx = min(obj.x + abs(LSL) + 1, MAP_WIDTH)
+		endy = min(obj.y + abs(LSL) + 1, MAP_HEIGHT)
+
+		obj_fov_map = copy_submap_to_fov_map(startx, starty, endx - startx, endy - starty)
+		libtcod.map_compute_fov(obj_fov_map, obj.x - startx, obj.y - starty, abs(LSL), FOV_LIGHT_WALLS, FOV_ALGO)
+
+		#Get distance to each tile
+		for y in range(starty, endy):
+			for x in range(startx, endx):
+				blocked = not libtcod.map_is_in_fov(obj_fov_map, x - startx, y - starty)
+				# #If that tile is seeable from the light source
+				if not blocked:
+					#Update it's light value!
+					oldL = map[x][y].light_level
+					sign = math.copysign(1, LSL)
+					newL = oldL + int(sign * (100 - (100/abs(LSL)) * pythdist(obj.x, obj.y, x, y)))
+					map[x][y].light_level = newL
 
 def update_fov():
 	libtcod.map_compute_fov(fov_map, player.x, player.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGO)
@@ -1225,11 +1257,9 @@ def render_all():
 	if fov_recompute:
 		fov_recompute = False
 
-
 		#Compute light levels
 		update_lights()
 		
- 
 		#recompute FOV if needed (the player moved or something)
 		update_fov()
 
@@ -1251,6 +1281,10 @@ def render_all():
 				else:
 					#it's visible
 					light = map[x][y].light_level
+
+					#Don't show light levels on walls, makes it too confusing
+					if map[x][y].blocked:
+						light = 0 #light / 2 #/2 is nice but you can see through walls...
 					#light = rand_lin_fluc(light) #Randomly fluctuate a little, for style points
 					(r, g, b) = map[x][y].light_color
 
