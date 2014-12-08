@@ -33,3 +33,7 @@ Add scrolling (maps larger than screen?)
 Add an x lookaround menu like crawl's
 
 Add a noise system with shouting
+
+Add a message when something comes into view
+
+Add enemies having a direction that they look in!

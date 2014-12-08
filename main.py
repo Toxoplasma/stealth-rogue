@@ -352,6 +352,7 @@ class LightOrbThrowerMonster:
 
 	#AI for a basic monster.
 	def take_turn(self):
+		global objects
 		monster = self.owner
 
 		actiontime = 0
@@ -370,15 +371,20 @@ class LightOrbThrowerMonster:
 
 		elif could_see_player: #It couldn't see you, so it tries to throw an orb
 			self.can_see_player = False
+			message("The " + monster.name + " lost sight of you.", libtcod.red)
 
 			if time > self.last_throw + ORB_GOBLIN_THROW_RATE:
-				message("The " + monster.name + " throws a light orb!", libtcod.red)
+				message("The " + monster.name + " throws a light orb!", libtcod.orange)
 				
 				#Throw an orb at destination
 				orb_ai = LightDarkOrb(LIGHT_ORB_TICK_TIME)
+				l = Light(LIGHT_ORB_LSL)
 				lit_orb = Object(monster.x, monster.y, '*', 'light orb', LIGHT_ORB_THROWN_COLOR, 
-						light_source = True, light_source_level = LIGHT_ORB_LSL, ai = orb_ai)
+						light = l, ai = orb_ai)
 				throw_object(lit_orb, monster.x, monster.y, self.dest[0], self.dest[1])
+
+				add_light(lit_orb)
+
 				objects.append(lit_orb)
 				lit_orb.send_to_back()
 
@@ -1235,7 +1241,6 @@ def get_light(x, y):
 
 def remove_light(obj):
 	global map
-	print "removing light from " + obj.name
 	if obj.light:
 		update_light_at_location(obj.x, obj.y, -1 * obj.light.level)
 
@@ -1930,6 +1935,11 @@ def qremove(o):
 #Remove an object both from the q and from objects
 def oremove(o):
 	global q, objects
+	
+	#If it's a light source, remove it!
+	if o.light:
+		remove_light(o)
+
 	qremove(o)
 	objects.remove(o)
 
