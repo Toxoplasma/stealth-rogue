@@ -26,6 +26,8 @@ archer that stays in light
 
 limit namelengths to 20
 
+Bug: Light gets undone before the enemies check for you. So an orc probably never sees you at the edge of his vision
+
 ###### BIG ######
 
 Add coming back up floors?

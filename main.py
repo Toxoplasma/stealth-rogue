@@ -10,45 +10,10 @@ import shelve
 import random
  
 from consts import *
+from tile import *
 
- 
- 
-class Tile:
-	#a tile of the map and its properties
-	def __init__(self, blocked, dark_color, light_color, block_sight = None):
-		self.blocked = blocked
- 
-		#all tiles start unexplored
-		self.explored = False
 
-		#Amount of light on the tile
-		self.light_level = 0
- 
-		#by default, if a tile is blocked, it also blocks sight
-		if block_sight is None: block_sight = blocked
-		self.block_sight = block_sight
 
-		#colors
-		self.dark_color = dark_color
-		self.light_color = light_color
- 
-class Rect:
-	#a rectangle on the map. used to characterize a room.
-	def __init__(self, x, y, w, h):
-		self.x1 = x
-		self.y1 = y
-		self.x2 = x + w
-		self.y2 = y + h
-
-	def center(self):
-		center_x = (self.x1 + self.x2) / 2
-		center_y = (self.y1 + self.y2) / 2
-		return (center_x, center_y)
- 
-	def intersect(self, other):
-		#returns true if this rectangle intersects with another one
-		return (self.x1 <= other.x2 and self.x2 >= other.x1 and
-				self.y1 <= other.y2 and self.y2 >= other.y1)
  
 class Object:
 	#this is a generic object: the player, a monster, an item, the stairs...
@@ -207,6 +172,8 @@ class Fighter:
 		self.death_function = death_function
 		self.base_movespeed = movespeed
 		self.base_attackspeed = attackspeed
+
+		self.inventory = []
  
 	@property
 	def power(self):  #return actual power, by summing up the bonuses from all equipped items
@@ -424,19 +391,26 @@ class Item:
 	#an item that can be picked up and used.
 	def __init__(self, use_function=None):
 		self.use_function = use_function
+		self.carrier = None
  
-	def pick_up(self):
+	def pick_up(self, newOwner):
 		#add to the player's inventory and remove from the map
-		if len(inventory) >= 26:
-			message('Your inventory is full, cannot pick up ' + self.owner.name + '.', libtcod.red)
+		if len(newOwner.fighter.inventory) >= 26:
+			if newOwner == player:
+				message('Your inventory is full, cannot pick up ' + self.owner.name + '.', libtcod.red)
+			return False
 		else:
-			inventory.append(self.owner)
+			newOwner.fighter.inventory.append(self.owner)
+			self.carrier = newOwner
 			objects.remove(self.owner)
-			message('You picked up a ' + self.owner.name + '!', libtcod.green)
+			if newOwner == player:
+				message('You pick up the ' + self.owner.name + '!', libtcod.green)
+			else:
+				in_sight_message('The ' + newOwner.name + ' picks up the ' + self.owner.name + '.', libtcod.white, self.owner)
  
 			#special case: automatically equip, if the corresponding equipment slot is unused
 			equipment = self.owner.equipment
-			if equipment and get_equipped_in_slot(equipment.slot) is None:
+			if equipment and get_equipped_in_slot(newOwner, equipment.slot) is None:
 				equipment.equip()
  
 	def drop(self):
@@ -447,9 +421,12 @@ class Item:
 		#add to the map and remove from the player's inventory. also, place it at the player's coordinates
 		objects.append(self.owner)
 		inventory.remove(self.owner)
-		self.owner.x = player.x
-		self.owner.y = player.y
-		message('You dropped a ' + self.owner.name + '.', libtcod.yellow)
+		self.owner.x = self.carrier.x
+		self.owner.y = self.carrier.y
+		if newOwner == player:
+			message('You drop the ' + self.owner.name + '!', libtcod.yellow)
+		else:
+			in_sight_message('The ' + newOwner.name + ' drops the ' + self.owner.name + '.', libtcod.white, self.owner)
  
 	def use(self):
 		#special case: if the object has the Equipment component, the "use" action is to equip/dequip
@@ -462,7 +439,7 @@ class Item:
 			message('The ' + self.owner.name + ' cannot be used.')
 		else:
 			if self.use_function() != 'cancelled':
-				inventory.remove(self.owner)  #destroy after use, unless it was cancelled for some reason
+				self.carrier.fighter.inventory.remove(self.owner)  #destroy after use, unless it was cancelled for some reason
  
 class Equipment:
 	#an object that can be equipped, yielding bonuses. automatically adds the Item component.
@@ -485,12 +462,18 @@ class Equipment:
  
 	def equip(self):
 		#if the slot is already being used, dequip whatever is there first
-		old_equipment = get_equipped_in_slot(self.slot)
+		old_equipment = get_equipped_in_slot(self.owner.item.carrier, self.slot)
 		if old_equipment is not None:
 			old_equipment.dequip()
  
 		#equip object and show a message about it
 		self.is_equipped = True
+		if self.owner.item.carrier == player:
+			message('You drop the ' + self.owner.name + '!', libtcod.yellow)
+		else:
+			in_sight_message('The ' + self.owner.item.carrier.name + ' drops the ' + self.owner.name + '.', libtcod.white, self.owner)
+
+
 		message('Equipped ' + self.owner.name + ' on ' + self.slot + '.', libtcod.light_green)
  
 	def dequip(self):
@@ -567,21 +550,18 @@ class TemporarySpeedUp:
 		return self.tick_time
 
 
-def get_equipped_in_slot(slot):  #returns the equipment in a slot, or None if it's empty
-	for obj in inventory:
+def get_equipped_in_slot(unit, slot):  #returns the equipment in a slot, or None if it's empty
+	for obj in unit.fighter.inventory:
 		if obj.equipment and obj.equipment.slot == slot and obj.equipment.is_equipped:
 			return obj.equipment
 	return None
  
 def get_all_equipped(obj):  #returns a list of equipped items
-	if obj == player:
-		equipped_list = []
-		for item in inventory:
-			if item.equipment and item.equipment.is_equipped:
-				equipped_list.append(item.equipment)
-		return equipped_list
-	else:
-		return []  #other objects have no equipment
+	equipped_list = []
+	for item in obj.fighter.inventory:
+		if item.equipment and item.equipment.is_equipped:
+			equipped_list.append(item.equipment)
+	return equipped_list
 
 def pythdist(x1, y1, x2, y2):
 	return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
@@ -1337,7 +1317,22 @@ def render_all():
 	#blit the contents of "panel" to the root console
 	libtcod.console_blit(panel, 0, 0, SCREEN_WIDTH, PANEL_HEIGHT, 0, 0, PANEL_Y)
  
+
+def in_player_fov(x, y):
+	return libtcod.map_is_in_fov(fov_map, x, y)
+				
  
+def player_can_see_obj(obj):
+	return in_player_fov(obj.x, obj.y) and \
+		((map[obj.x][obj.y].light_level > MIN_ITEM_LIGHT_LEVEL) or obj.distance_to(player) < VISION_DISTANCE_WITHOUT_LIGHT)
+
+def in_sight_message(msg, color, actor):
+	if player_can_see_obj(actor):
+		message(msg, color)
+		return True
+
+	return False
+
 def message(new_msg, color = libtcod.white):
 	#split the message if necessary, among multiple lines
 	new_msg_lines = textwrap.wrap(new_msg, MSG_WIDTH)
@@ -1474,11 +1469,11 @@ def menu(header, options, width):
  
 def inventory_menu(header):
 	#show a menu with each item of the inventory as an option
-	if len(inventory) == 0:
+	if len(player.fighter.inventory) == 0:
 		options = ['Inventory is empty.']
 	else:
 		options = []
-		for item in inventory:
+		for item in player.fighter.inventory:
 			text = item.name
 			#show additional information, in case it's equipped
 			if item.equipment and item.equipment.is_equipped:
@@ -1488,8 +1483,8 @@ def inventory_menu(header):
 	index = menu(header, options, INVENTORY_WIDTH)
  
 	#if an item was chosen, return it
-	if index is None or len(inventory) == 0: return None
-	return inventory[index].item
+	if index is None or len(player.fighter.inventory) == 0: return None
+	return player.fighter.inventory[index].item
  
 def msgbox(text, width=50):
 	menu(text, [], width)  #use menu() as a sort of "message box"
@@ -1533,7 +1528,7 @@ def handle_keys():
 				#pick up an item
 				for object in objects:  #look for an item in the player's tile
 					if object.x == player.x and object.y == player.y and object.item:
-						object.item.pick_up()
+						object.item.pick_up(player)
 						break
  
 			if key_char == 'i':
@@ -1982,7 +1977,6 @@ def save_game():
 	file['objects'] = objects
 	file['player_index'] = objects.index(player)  #index of player in objects list
 	file['stairs_index'] = objects.index(stairs)  #same for the stairs
-	file['inventory'] = inventory
 	file['game_msgs'] = game_msgs
 	file['game_state'] = game_state
 	file['dungeon_level'] = dungeon_level
@@ -2004,7 +1998,6 @@ def load_game():
 	objects = file['objects']
 	player = objects[file['player_index']]  #get index of player in objects list and access it
 	stairs = objects[file['stairs_index']]  #same for the stairs
-	inventory = file['inventory']
 	game_msgs = file['game_msgs']
 	game_state = file['game_state']
 	dungeon_level = file['dungeon_level']
@@ -2028,7 +2021,7 @@ def load_game():
 
 ##New game
 def new_game(name = ""):
-	global player, inventory, game_msgs, game_state, dungeon_level, q, time
+	global player, game_msgs, game_state, dungeon_level, q, time
  
 	#create object representing the player
 	fighter_component = Fighter(hp=100, defense=1, power=2, xp=0, death_function=player_death)
@@ -2037,6 +2030,7 @@ def new_game(name = ""):
 	player.level = 1
 
 	inventory = []
+	player.fighter.inventory = inventory
 
 
 	#Set up the game timer!
@@ -2063,7 +2057,9 @@ def new_game(name = ""):
 	#initial equipment: a dagger
 	equipment_component = Equipment(slot='right hand', power_bonus=2)
 	obj = Object(0, 0, '-', 'dagger', libtcod.sky, equipment=equipment_component)
-	inventory.append(obj)
+	objects.append(obj)
+	obj.item.pick_up(player)
+	#player.fighter.inventory.append(obj)
 	equipment_component.equip()
 	obj.always_visible = True
 
@@ -2085,7 +2081,7 @@ def next_level():
 	q = [(player, time + 1)]
 
 	#If the player has any items with timed, put them in the queue
-	for item in inventory:
+	for item in player.fighter.inventory:
 		if item.ai:
 			qinsert(item, time + 2)
 
