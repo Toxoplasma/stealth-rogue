@@ -10,8 +10,8 @@ import shelve
 import random
  
 from consts import *
-from tile import *
-
+#from tile import *
+import tile
 
 
  
