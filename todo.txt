@@ -4,8 +4,6 @@ Make orbs land a bit randomly
 
 Fix enemies skipping the first turn, it's weird
 
-Give them a few turns rest between movements
-
 More color adjustments
 
 Change monsters to yellow-backed or something when they're pursuing but lost you
@@ -14,9 +12,6 @@ Make movement slightly randomized
 
 Show the time somewhere
 
-Fix enemies with torches to always compute light right after they move (currently its a turn behind them)
-	possibly negatively apply their light before they move, then positively do it after the move?
-
 scroll of speed
 	Make speed as an invisible equipment, rather than a object at -1, -1. This gives us a bonus rather than modifying base
 	Fix to not stop working when you go up down stairs
@@ -24,9 +19,12 @@ Confuse attack eachother
 
 archer that stays in light
 
+When you confuse something make it's destination -1 -1
+
 limit namelengths to 20
 
-Bug: Light gets undone before the enemies check for you. So an orc probably never sees you at the edge of his vision
+Fix orb goblins to be state machines and pause between movements
+	probably just as extensions of regular enemies?
 
 ###### BIG ######
 
@@ -38,4 +36,4 @@ Add a noise system with shouting
 
 Add a message when something comes into view
 
-Add enemies having a direction that they look in!
+3D!
