@@ -2,13 +2,13 @@
 #
 # libtcod python tutorial
 #
- 
+
 import libtcodpy as libtcod
 import math
 import textwrap
 import shelve
 import random
- 
+
 from consts import *
 import g
 import tile
@@ -18,126 +18,10 @@ import ui
 import v
 import u
 import monsters
+import maps
 
 
-def make_floor(x, y):
-	g.map[x][y].blocked = False
-	g.map[x][y].block_sight = False
-	g.map[x][y].light_color = LIGHT_GROUND_COLOR
-	g.map[x][y].dark_color = DARK_GROUND_COLOR
 
-def create_room(room):
-	#go through the tiles in the rectangle and make them passable
-	for x in range(room.x1 + 1, room.x2):
-		for y in range(room.y1 + 1, room.y2):
-			make_floor(x, y)
- 
-def create_h_tunnel(x1, x2, y):
-	#horizontal tunnel. min() and max() are used in case x1>x2
-	for x in range(min(x1, x2), max(x1, x2) + 1):
-		make_floor(x, y)
- 
-def create_v_tunnel(y1, y2, x):
-	#vertical tunnel
-	for y in range(min(y1, y2), max(y1, y2) + 1):
-		make_floor(x, y)
- 
-def make_map():
-	#the list of g.objects with just the player
-	g.objects = [g.player]
- 
-	#fill map with "blocked" tiles
-	g.map = [[ tile.Tile(True, light_color = LIGHT_WALL_COLOR, dark_color = DARK_WALL_COLOR)
-			 for y in range(MAP_HEIGHT) ]
-		   for x in range(MAP_WIDTH) ]
- 
-	rooms = []
-	num_rooms = 0
- 
-	for r in range(MAX_ROOMS):
-		#random width and height
-		w = libtcod.random_get_int(0, ROOM_MIN_SIZE, ROOM_MAX_SIZE)
-		h = libtcod.random_get_int(0, ROOM_MIN_SIZE, ROOM_MAX_SIZE)
-		#random position without going out of the boundaries of the map
-		x = libtcod.random_get_int(0, 0, MAP_WIDTH - w - 1)
-		y = libtcod.random_get_int(0, 0, MAP_HEIGHT - h - 1)
- 
-		#"Rect" class makes rectangles easier to work with
-		new_room = tile.Rect(x, y, w, h)
- 
-		#run through the other rooms and see if they intersect with this one
-		failed = False
-		for other_room in rooms:
-			if new_room.intersect(other_room):
-				failed = True
-				#break
-
-		failed = False
- 
-		if not failed:
-			#this means there are no intersections, so this room is valid
- 
-			#"paint" it to the map's tiles
-			create_room(new_room)
- 
-			#center coordinates of new room, will be useful later
-			(new_x, new_y) = new_room.center()
- 
- 			if num_rooms > 0:
-				#connect it to the previous room with a tunnel
-
-				#center coordinates of previous room
-				(prev_x, prev_y) = rooms[num_rooms-1].center()
-
-				#draw a coin (random number that is either 0 or 1)
-				if libtcod.random_get_int(0, 0, 1) == 1:
-					#first move horizontally, then vertically
-					create_h_tunnel(prev_x, new_x, prev_y)
-					create_v_tunnel(prev_y, new_y, new_x)
-				else:
-					#first move vertically, then horizontally
-					create_v_tunnel(prev_y, new_y, prev_x)
-					create_h_tunnel(prev_x, new_x, new_y)
- 
-			#finally, append the new room to the list
-			rooms.append(new_room)
-			num_rooms += 1
-
-	print "Generated " + str(num_rooms) + " rooms"
-
-	#create stairs at the center of the last room
-	g.stairs = object.Object(new_x, new_y, '>', 'stairs', libtcod.white, always_visible=True)
-	g.objects.append(g.stairs)
-	g.stairs.send_to_back()  #so it's drawn below the monsters
-
-	#Generate dungeon features
-	place_all_objects()
-
-	#Calculate light
-	v.update_lights()
-
-	#Put the player down
-	px, py = u.rand_tile_darkest()
-	g.player.x = px
-	g.player.y = py
-
-	g.fov_map = v.copy_map_to_fov_map()
- 
-
-
-def place_all_objects():
-	####Dungeon features
-	num_features = item.spawn_features()
-
-	####Items
-	num_items = item.spawn_items()
-
-	####Monsters 
-	num_monsters = monsters.spawn_monsters()
-
-	print "Generated " + str(num_features) + " features"
-	print "Generated " + str(num_items) + " items"
-	print "Generated " + str(num_monsters) + " monsters"
  
  
 def player_move_or_attack(dx, dy): #TODO: just make this a subfunction of fighter
@@ -430,19 +314,21 @@ def load_game():
 	g.time = file['time']
 	file.close()
 
-	print "  Loaded variables, initializing FOV and lights..."
+	print "  Loaded variables, initializing FOV..."
  
-	initialize_fov()
-	update_lights()
+	v.initialize_fov()
+
+	print "  Updating lights..."
+	v.update_lights()
 
 	print "  Rebuilding queue..."
 	#Rebuild the queue
-	g.q = [(player, time)]
+	g.q = [(g.player, g.time)]
  
  	for obj in g.objects:
 		if obj != g.player and obj.in_q:
 			print "    Inserting " + obj.name + " into queue at time " + str(obj.next_move)
-			qinsert(obj, obj.next_move)
+			u.qinsert(obj, obj.next_move)
 
 ##New game
 def new_game(name = ""): 
@@ -502,6 +388,7 @@ def next_level():
 	#player.fighter.heal(player.fighter.max_hp / 2)  #heal the player by 50%
  
 	g.dungeon_level += 1
+	g.branch = 'grounds'
 
 	#Reset the movement queue to just the player
 	g.q = [(g.player, g.time + 1)]
@@ -511,7 +398,8 @@ def next_level():
 		if item.ai:
 			qinsert(item, time + 2)
 
-	make_map()  #create a fresh new level!
+	#maps.make_map()  #create a fresh new level!
+	maps.make_grounds()
 	v.initialize_fov()
 
 

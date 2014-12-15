@@ -137,3 +137,21 @@ Branches
 
 
 
+Branches v2:
+	Grounds
+	Main hall
+		Magic gardens
+		Mines
+		???
+	Upper castle
+
+
+Magic gardens:
+	Walls are plants that rapidly grow/die, resulting in an ever shifting maze/area
+	Lots of lanterns (small torches) for ambient lighting
+
+	enemies:
+		Guardeners (hehehehehe)
+		Screaming flower (can't move, screams if it notices you)
+		Creeping vine that follows you, stopping you from running away
+		Glow moths (leave a trail of light)

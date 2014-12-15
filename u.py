@@ -11,6 +11,9 @@ def pythdist(x1, y1, x2, y2):
  
 ###RANDOM
 
+def rand_int(start, stop):
+	return random.randint(start, stop)
+
 #Returns true if under chance
 def randPercent(chance):
 	return libtcod.random_get_int(0, 0, 99) < chance
@@ -180,6 +183,13 @@ def from_dungeon_level(table):
 			return value
 	return 0
 
+def from_branch_level(table):
+	#returns a value that depends on level. the table specifies what value occurs after each level, default is 0.
+	for (value, level) in reversed(table[g.branch]):
+		if g.dungeon_level >= level:
+			return value
+	return 0
+
 
 ##Queue stuff
 #Insert into q at time t
@@ -266,3 +276,13 @@ def boundedY(start, stop):
 	bstart = max(start, 0)
 	bstop = min(stop, MAP_HEIGHT)
 	return range(bstart, bstop)
+
+
+def make_noise(x, y, volume, source = None):
+	#Find all units within volume distance, attract them over
+	for obj in g.objects:
+		if pythdist(x, y, obj.x, obj.y) <= volume:
+			if obj != source:
+				if obj.fighter and obj.ai:
+					obj.ai.hear_noise(x, y, source)
+					#obj.fighter.look_towards = (x, y)

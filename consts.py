@@ -31,13 +31,17 @@ MAP_WIDTH = 100
 MAP_HEIGHT = 50
  
 #parameters for dungeon generator
-ROOM_MAX_SIZE = 50 #15 #15
-ROOM_MIN_SIZE = 40 #4 #6
+ROOM_MAX_SIZE = 15 #15
+ROOM_MIN_SIZE = 4 #6
 MAX_ROOMS = 50
 
-NUM_MONSTERS = [[5, 1], [10, 2], [15, 4], [25, 6], [35, 8], [50, 10], [80, 13]]
-NUM_ITEMS = [[5, 1], [10, 5], [15, 7]]
-NUM_FEATURES = [[10, 1]]
+#NUM_MONSTERS = [[5, 1], [10, 2], [15, 4], [25, 6], [35, 8], [50, 10], [80, 13]]
+#NUM_ITEMS = [[5, 1], [10, 5], [15, 7]]
+#NUM_FEATURES = [[10, 1]]
+
+NUM_MONSTERS = {'grounds': [[5, 1], [8, 2], [12, 3], [15, 4], [20, 5]]}
+NUM_ITEMS = {'grounds': [[3, 1], [4, 2], [5, 3], [6, 4], [7, 5]]}
+NUM_FEATURES = {'grounds': [[8, 1], [12, 2], [16, 3], [20, 4], [24, 5]]}
  
 ################################################################################
 #Vision stuff
@@ -118,14 +122,26 @@ SPEED_TICK_NUM = 5
 
 TORCH_COLOR = libtcod.black
 
-SMALL_TORCH_CHANCE = [[35, 1], [25, 3], [15, 5], [10, 7]]
+#SMALL_TORCH_CHANCE = [[35, 1], [25, 3], [15, 5], [10, 7]]
+SMALL_TORCH_CHANCE = {}
 SMALL_TORCH_LSL = 4
 
-TORCH_CHANCE = [[15, 2], [25, 4], [35, 5]]
+#TORCH_CHANCE = [[15, 2], [25, 4], [35, 5]]
+MID_TORCH_CHANCE = {}
 TORCH_LSL = 8
 
-LARGE_TORCH_CHANCE = [[5, 3], [15, 5], [25, 7], [35, 9]]
+#LARGE_TORCH_CHANCE = [[5, 3], [15, 5], [25, 7], [35, 9]]
+LARGE_TORCH_CHANCE = {}
 LARGE_TORCH_LSL = 12
+
+
+####Grounds
+
+SMALL_TORCH_CHANCE['grounds'] = [[35, 1], [25, 3], [15, 5]]
+MID_TORCH_CHANCE['grounds'] = [[15, 1], [25, 2], [20, 3], [10, 5]]
+LARGE_TORCH_CHANCE['grounds'] = [[10, 2], [20, 3], [30, 4], [35, 5]]
+
+
 
 
 ################################################################################
@@ -157,7 +173,7 @@ ORB_GOBLIN_COLOR = libtcod.blue
 ORB_GOBLIN_THROW_RATE = 100
 
 ##Orcs
-ORC_CHANCE = [[80, 1]]
+ORC_CHANCE = {} #[[80, 1]]
 ORC_HP = 30
 ORC_POW = 4
 ORC_DEF = 0
@@ -174,6 +190,29 @@ TROLL_DEF = 2
 TROLL_XP = 100
 TROLL_COLOR = libtcod.darker_green
 
+
+ORC_CHANCE['grounds'] = [[35, 1]]#, [25, 3], [15, 5]]
+
+##Basic guards
+GUARD_CHANCE = {} #[[80, 1]]
+SMALL_TORCH_GUARD_CHANCE = {}
+MID_TORCH_GUARD_CHANCE = {}
+GUARD_HP = 30
+GUARD_POW = 4
+GUARD_DEF = 0
+GUARD_XP = 35
+GUARD_LSL = 6
+GUARD_COLOR = libtcod.white
+GUARD_CHAR = 'g'
+SMALL_TORCH_GUARD_LSL = 4
+MID_TORCH_GUARD_LSL = 6
+
+GUARD_CHANCE['grounds'] = [[30, 1]]
+SMALL_TORCH_GUARD_CHANCE['grounds'] = [[30, 1], [25, 3], [15, 5]]
+MID_TORCH_GUARD_CHANCE['grounds'] = [[15, 1], [20, 3], [30, 5]]
+
+
+DEAD_GUARD_TORCH_TICK = 10
 
 
 

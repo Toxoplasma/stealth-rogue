@@ -96,16 +96,16 @@ def update_lights():
 			add_light(obj)
 
 	#Bound everything
-	for x in range(MAP_WIDTH):
-		for y in range(MAP_HEIGHT):
-			oldL = g.map[x][y].light_level
-			newL = newL = min(LIGHT_MAX, oldL)
-			newL = max(LIGHT_MIN, newL)
+	# for x in range(MAP_WIDTH):
+	# 	for y in range(MAP_HEIGHT):
+	# 		oldL = g.map[x][y].light_level
+	# 		newL = min(LIGHT_MAX, oldL)
+	# 		newL = max(LIGHT_MIN, newL)
 
-			#if map[x][y].blocked:
-			#	newL = min(1, newL) #Make walls not show light levels
+	# 		#if map[x][y].blocked:
+	# 		#	newL = min(1, newL) #Make walls not show light levels
 
-			g.map[x][y].light_level = newL
+	# 		g.map[x][y].light_level = newL
 
 def update_light_at_location(tx, ty, LSL):
 	center_level = LSL * LIGHT_STRENGTH

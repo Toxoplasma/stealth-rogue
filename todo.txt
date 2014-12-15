@@ -26,6 +26,10 @@ limit namelengths to 20
 Fix orb goblins to be state machines and pause between movements
 	probably just as extensions of regular enemies?
 
+add doors....
+
+Change vision cones to not stack visually, gets too bright
+
 ###### BIG ######
 
 Add coming back up floors?

@@ -16,6 +16,8 @@ game_state = ""
 
 dungeon_level = 0
 
+branch = ""
+
 fov_map = None
 
 mouse = None
