@@ -27,6 +27,10 @@ class BasicMonster:
 
 		could_see_player = self.can_see_player
 
+		#If they could see the player last turn, update their views to see where he went
+		if could_see_player:
+			monster.fighter.look_towards = (g.player.x, g.player.y)
+
 		#Regardless of state, check if it can see you
 		#Check if it can see you!
 		if v.detect_player(monster):
@@ -147,6 +151,52 @@ class WanderMonster:
 			#Something has gone wrong, immediately move towards new position
 			newx, newy = self.destFunc(monster.x, monster.y)
 			self.dest = (newx, newy)
+
+		return actiontime
+
+	def hear_noise(self, x, y, source):
+		return
+
+class StationaryMonster:
+	def __init__(self, attacksPlayer, seesPlayerFunc = None):
+		self.can_see_player = False
+		self.attacksPlayer = attacksPlayer
+		self.seesPlayerFunc = seesPlayerFunc
+
+		self.look_towards = (-1, -1) #don't want to show facing on these guys
+
+	def take_turn(self):
+		monster = self.owner
+
+		actiontime = 0
+			
+		oldx = monster.x
+		oldy = monster.y
+
+		#Can it see the player?
+		if v.detect_player(monster):
+			#Send a message about it if it couldn't already see you
+			if not self.can_see_player:
+				if v.player_can_see(monster.x, monster.y):
+					ui.message("The " + monster.name + " sees you!", libtcod.red)
+
+					self.seesPlayerFunc(monster)
+
+			self.can_see_player = True
+			#monster.fighter.look_towards = (g.player.x, g.player.y)
+		else:
+			self.can_see_player = False
+
+		#Do the onstep whatever it is
+		#if self.eachStepFunc:
+		#	self.eachStepFunc(monster)
+
+		#If we're next to the player, attack it
+		if self.attacksPlayer and self.can_see_player and (monster.distance_to(g.player) < 2):
+			actiontime = monster.fighter.attack(g.player)
+
+		#actiontime = monster.move_towards(self.dest[0], self.dest[1])
+		actiontime = 10
 
 		return actiontime
 
@@ -307,6 +357,11 @@ def glowmothDropLightOrb(monster):
 	g.fov_recompute = True
 
 
+def scream_plant_shout(monster):
+	u.make_noise(monster.x, monster.y, SCREAMER_VOLUME)
+
+	ui.message("The plant screams loudly!")
+
 #chance of each monster
 def spawn_monsters():
 	monster_chances = {}
@@ -319,18 +374,21 @@ def spawn_monsters():
 	monster_chances['small torch guard'] = u.from_branch_level(SMALL_TORCH_GUARD_CHANCE)
 	monster_chances['mid torch guard'] = u.from_branch_level(MID_TORCH_GUARD_CHANCE)
 	monster_chances['glowmoth'] = u.from_branch_level(GLOWMOTH_CHANCE)
+	monster_chances['screamer'] = u.from_branch_level(SCREAMER_CHANCE)
 
 
 	#choose random number of monsters
 	target_num_monsters = u.from_branch_level(NUM_MONSTERS)
-	num_monsters = u.rand_gauss_pos(target_num_monsters, target_num_monsters / 3)
+	num_monsters = u.rand_gauss_pos(target_num_monsters, target_num_monsters / 5)
+
+	print "Attempting to spawn " + str(num_monsters) + " monsters..."
  
 	for i in range(num_monsters):
 		#choose random spot for this monster
 		x, y = u.get_empty_tile()
  
 		#only place it if the tile is not blocked
-		if not u.is_blocked(x, y):
+		if u.is_empty(x, y):
 			choice = u.random_choice(monster_chances)
 			if choice == 'guard':
 				make_guard(x, y)
@@ -341,6 +399,8 @@ def spawn_monsters():
 
 			elif choice == 'glowmoth':
 				make_glowmoth(x, y)
+			elif choice == 'screamer':
+				make_scream_plant(x, y)
 
 	return num_monsters
 
@@ -412,9 +472,17 @@ def make_guard(x, y):
 	add_monster(monster)
 
 def make_glowmoth(x, y):
-	fighter_component = object.Fighter(hp=GUARD_HP, defense=GUARD_DEF, power=GUARD_POW, xp=GUARD_XP, death_function=monster_death)
+	fighter_component = object.Fighter(hp=GLOWMOTH_HP, defense=GLOWMOTH_DEF, power=GLOWMOTH_POW, xp=GLOWMOTH_XP, death_function=monster_death)
 	ai_component = WanderMonster(destFunc = u.rand_tile_in_sight, eachStepFunc = glowmothDropLightOrb)
 	monster = object.Object(x, y, GLOWMOTH_CHAR, 'glowmoth', GLOWMOTH_COLOR,
+					 blocks=True, fighter=fighter_component, ai=ai_component)
+
+	add_monster(monster)
+
+def make_scream_plant(x, y):
+	fighter_component = object.Fighter(hp=SCREAMER_HP, defense=SCREAMER_DEF, power=SCREAMER_POW, xp=SCREAMER_XP, death_function=monster_death, vision_angle = 360)
+	ai_component = StationaryMonster(attacksPlayer = False, seesPlayerFunc = scream_plant_shout)
+	monster = object.Object(x, y, SCREAMER_CHAR, 'screaming plant', SCREAMER_COLOR,
 					 blocks=True, fighter=fighter_component, ai=ai_component)
 
 	add_monster(monster)

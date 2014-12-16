@@ -71,6 +71,8 @@ DARK_WALL_COLOR = (0, 0, 30)
 LIGHT_WALL_COLOR = (50, 30, 0)
 DARK_GROUND_COLOR = (20, 20, 40)
 LIGHT_GROUND_COLOR = (60, 60, 80)
+DARK_DIRT_COLOR = (30, 30, 20)
+LIGHT_DIRT_COLOR = (60, 50, 40)
 DARK_PLANT_COLOR = (20, 40, 30)
 LIGHT_PLANT_COLOR = (60, 80, 60)
 
@@ -217,7 +219,14 @@ GLOWMOTH_ORB_TICKTIME = 40
 GLOWMOTH_ORB_LSL = 3
 
 ##Screaming flower
-
+SCREAMER_CHANCE = {}
+SCREAMER_HP = 70
+SCREAMER_POW = 3
+SCREAMER_DEF = 0
+SCREAMER_XP = 20
+SCREAMER_COLOR = libtcod.green
+SCREAMER_CHAR = 'Y'
+SCREAMER_VOLUME = 30
 
 
 DEAD_GUARD_TORCH_TICK = 10
@@ -243,7 +252,7 @@ LEVEL_UP_FACTOR = 150
 VISION_DISTANCE_WITHOUT_LIGHT = 4
 
 #VISION STUFF
- 
+AMBIENT_LIGHT = {} 
 
 ################################################################################
 #Level stuff
@@ -251,6 +260,7 @@ VISION_DISTANCE_WITHOUT_LIGHT = 4
 
 #Grounds
 REMEMBER_LEVEL['grounds'] = True
+AMBIENT_LIGHT['grounds'] = 0
 NUM_MONSTERS['grounds'] = [[5, 1], [8, 2], [12, 3], [15, 4], [20, 5]]
 NUM_ITEMS['grounds'] = [[3, 1], [4, 2], [5, 3], [6, 4], [7, 5]]
 NUM_FEATURES['grounds'] = [[8, 1], [12, 2], [16, 3], [20, 4], [24, 5]]
@@ -266,6 +276,7 @@ LARGE_TORCH_CHANCE['grounds'] = [[10, 2], [20, 3], [30, 4], [35, 5]]
 
 #Gardens
 REMEMBER_LEVEL['gardens'] = False
+AMBIENT_LIGHT['gardens'] = 0
 NUM_MONSTERS['gardens'] = [[10, 1], [14, 2], [18, 3], [22, 4], [25, 5]]
 NUM_ITEMS['gardens'] = [[3, 1], [4, 2], [5, 3], [6, 4], [7, 5]]
 NUM_FEATURES['gardens'] = [[120, 1]] #This gets ignored currently
@@ -274,6 +285,7 @@ GUARD_CHANCE['gardens'] = [[30, 1]]
 SMALL_TORCH_GUARD_CHANCE['gardens'] = [[0, 1]]
 MID_TORCH_GUARD_CHANCE['gardens'] = [[0, 1]]
 GLOWMOTH_CHANCE['gardens'] = [[5, 1]]
+SCREAMER_CHANCE['gardens'] = [[5, 1]]
 
 SMALL_TORCH_CHANCE['gardens'] = [[35, 1], [25, 3], [15, 5]]
 MID_TORCH_CHANCE['gardens'] = [[0, 1]]

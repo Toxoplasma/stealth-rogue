@@ -88,7 +88,7 @@ def update_lights():
 	#Reset them
 	for x in range(MAP_WIDTH):
 		for y in range(MAP_HEIGHT):
-			g.map[x][y].light_level = 0
+			g.map[x][y].light_level = AMBIENT_LIGHT[g.branch]
 
 	#For every light source...
 	for obj in g.objects:

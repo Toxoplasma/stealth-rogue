@@ -17,6 +17,13 @@ def make_floor(x, y):
 	g.map[x][y].light_color = LIGHT_GROUND_COLOR
 	g.map[x][y].dark_color = DARK_GROUND_COLOR
 
+def make_dirt(x, y):
+	g.map[x][y].blocked = False
+	g.map[x][y].tiletype = 'dirt'
+	g.map[x][y].block_sight = False
+	g.map[x][y].light_color = LIGHT_DIRT_COLOR
+	g.map[x][y].dark_color = DARK_DIRT_COLOR
+
 def make_wall(x, y):
 	g.map[x][y].blocked = True
 	g.map[x][y].tiletype = 'wall'
@@ -279,7 +286,7 @@ def make_gardens():
 	#Empty everything but the border
 	for x in xrange(1, MAP_WIDTH - 1):
 		for y in xrange(1, MAP_HEIGHT - 1):
-			make_floor(x, y)
+			make_dirt(x, y)
 
 	### Make the stairs and player
 
@@ -397,7 +404,7 @@ class GardenDirector:
 		if self.add_plant(): #It worked!
 			#Remove from tail
 			rx, ry = self.plants[-1]
-			make_floor(rx, ry)
+			make_dirt(rx, ry)
 			u.fov_map_update_tile(rx, ry)
 			self.plants = self.plants[:-1]
 		else: #we're stuck! reverse

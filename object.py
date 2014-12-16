@@ -163,7 +163,8 @@ class Object:
 
 class Fighter:
     #combat-related properties and methods (monster, player, NPC).
-    def __init__(self, hp, defense, power, xp, mana=0, stealth=0, movespeed=10, attackspeed=10, death_function=None):
+    def __init__(self, hp, defense, power, xp, mana=0, stealth=0, movespeed=10, attackspeed=10, 
+                 death_function=None, vision_angle = MONSTER_VISION_ANGLE):
         self.base_max_hp = hp
         self.hp = hp
         self.base_defense = defense
@@ -175,6 +176,8 @@ class Fighter:
         self.base_attackspeed = attackspeed
         self.mana = mana
         self.base_max_mana = mana
+
+        self.vision_angle = vision_angle
 
         self.inventory = []
 
@@ -271,7 +274,7 @@ class Fighter:
 
             #print "    " + str(angle)
 
-            if abs(angle) < MONSTER_VISION_ANGLE:
+            if abs(angle) < self.vision_angle:
                 mark = True
 
         return mark
