@@ -155,3 +155,13 @@ Magic gardens:
 		Screaming flower (can't move, screams if it notices you)
 		Creeping vine that follows you, stopping you from running away
 		Glow moths (leave a trail of light)
+
+Dungeons
+	Prisoners in cells, call out if they see you
+	can free them for massive chaos?
+
+Treasure rooms:
+	guarded by a dragon!
+
+Somewhere: sleeping guard quarters
+

@@ -152,7 +152,9 @@ def place_all_objects():
 	print "Generated " + str(num_monsters) + " monsters"
 
 
-
+################################################################################
+#Grounds
+################################################################################
 def make_grounds():
 	g.objects = [g.player]
 	g.map = [[ tile.Tile(True, 'wall', light_color = LIGHT_WALL_COLOR, dark_color = DARK_WALL_COLOR)
@@ -277,6 +279,10 @@ def make_grounds():
 	### Make features
 	#place_all_objects()
 
+
+################################################################################
+#Gardens
+################################################################################
 def make_gardens():
 	g.objects = [g.player]
 	g.map = [[ tile.Tile(True, 'wall', light_color = LIGHT_WALL_COLOR, dark_color = DARK_WALL_COLOR)
@@ -367,8 +373,6 @@ def make_gardens():
 	#place_all_objects()
 
 
-
-
 class GardenDirector:
 	def __init__(self, ticktime, plants):
 		self.ticktime = ticktime
@@ -412,10 +416,30 @@ class GardenDirector:
 
 		return self.ticktime
 
+
+################################################################################
+#Mines
+################################################################################
+def make_mines():
+	g.objects = [g.player]
+	g.map = [[ tile.Tile(True, 'wall', light_color = LIGHT_WALL_COLOR, dark_color = DARK_WALL_COLOR)
+			 for y in xrange(MAP_HEIGHT) ]
+		   for x in xrange(MAP_WIDTH) ]
+
+	#Empty everything but the border
+	for x in xrange(1, MAP_WIDTH - 1):
+		for y in xrange(1, MAP_HEIGHT - 1):
+			make_floor(x, y)
+
 		
+
+
+
 
 def make_map():
 	if g.branch == 'grounds':
 		make_grounds()
 	elif g.branch == 'gardens':
 		make_gardens()
+	elif g.branch == 'mines':
+		make_mines()
