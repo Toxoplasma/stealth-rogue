@@ -1,5 +1,6 @@
 import random
 import math
+import libtcodpy as libtcod
 
 from consts import *
 import g
@@ -30,9 +31,21 @@ def rand_gauss_pos(mu, sigma):
 def rand_lin_fluc(num):
 	return int(random.uniform(num - num/10.0, num + num/10.0))
 
+#Doesn't include borders
+def rand_tile():
+	return rand_int(1, MAP_WIDTH - 2), rand_int(1, MAP_HEIGHT - 2)
+
+#Doesn't include borders
+def rand_tile_cond(func):
+	x = rand_int(1, MAP_WIDTH - 2)
+	y = rand_int(1, MAP_HEIGHT - 2)
+	while not func(x, y):
+		x = rand_int(1, MAP_WIDTH - 2)
+		y = rand_int(1, MAP_HEIGHT - 2)
+
+	return x, y
 
 def rand_tile_in_sight_light_bias(x, y):
-
 	startx = max(x - MAX_MONSTER_MOVE, 0)
 	starty = max(y - MAX_MONSTER_MOVE, 0)
 	endx = min(x + MAX_MONSTER_MOVE + 1, MAP_WIDTH)
@@ -46,8 +59,8 @@ def rand_tile_in_sight_light_bias(x, y):
 
 	#Now pick a random spot from within sight of that
 	chances = {}
-	for i in range (startx, endx):
-		for j in range(starty, endy):
+	for i in xrange (startx, endx):
+		for j in xrange(starty, endy):
 			if not invalidChoice(i, j):
 				chances[(i, j)] = g.map[i][j].light_level + 1 #do this so they don't get abandoned by orcs and have all 0s
 	
@@ -66,13 +79,36 @@ def rand_tile_in_sight(x, y):
 		return (not libtcod.map_is_in_fov(obj_fov_map, x_ - startx, y_ - starty)) or g.map[x_][y_].blocked
 
 	#Now pick a random spot from within sight of that
-	tx = x
-	ty = y
-	while ((tx == x) and (ty == y)) or invalidChoice(tx, ty):
-		tx = libtcod.random_get_int(0, startx, endx)
-		ty = libtcod.random_get_int(0, starty, endy)
+	chances = {}
+	for i in xrange (startx, endx):
+		for j in xrange(starty, endy):
+			if not invalidChoice(i, j):
+				chances[(i, j)] = 1 #do this so they don't get abandoned by orcs and have all 0s
 
-	return (tx, ty)
+	return random_choice(chances)
+
+
+
+
+	# startx = max(x - MAX_MONSTER_MOVE, 0)
+	# starty = max(y - MAX_MONSTER_MOVE, 0)
+	# endx = min(x + MAX_MONSTER_MOVE + 1, MAP_WIDTH)
+	# endy = min(y + MAX_MONSTER_MOVE + 1, MAP_HEIGHT)
+
+	# obj_fov_map = v.copy_submap_to_fov_map(startx, starty, endx - startx, endy - starty)
+	# libtcod.map_compute_fov(obj_fov_map, x - startx, y - starty, MAX_MONSTER_MOVE, FOV_LIGHT_WALLS, FOV_ALGO)
+
+	# def invalidChoice(x_, y_):
+	# 	return (not libtcod.map_is_in_fov(obj_fov_map, x_ - startx, y_ - starty)) or g.map[x_][y_].blocked
+
+	# #Now pick a random spot from within sight of that
+	# tx = x
+	# ty = y
+	# while ((tx == x) and (ty == y)) or invalidChoice(tx, ty):
+	# 	tx = libtcod.random_get_int(0, startx, endx)
+	# 	ty = libtcod.random_get_int(0, starty, endy)
+
+	# return (tx, ty)
 
 #Get a random tile with darkness bias
 def rand_tile_dark_bias(power):
@@ -80,8 +116,8 @@ def rand_tile_dark_bias(power):
 		return is_blocked(x_, y_)
 
 	chances = {}
-	for j in range(0, MAP_HEIGHT):
-		for i in range (0, MAP_WIDTH):
+	for j in xrange(0, MAP_HEIGHT):
+		for i in xrange (0, MAP_WIDTH):
 			if not invalidChoice(i, j):
 				chances[(i, j)] = (99 - g.map[i][j].light_level)**power #do this so they don't get abandoned by orcs and have all 0s
 	
@@ -93,8 +129,8 @@ def rand_tile_light_bias(power):
 		return is_blocked(x_, y_)
 
 	chances = {}
-	for j in range(0, MAP_HEIGHT):
-		for i in range (0, MAP_WIDTH):
+	for j in xrange(0, MAP_HEIGHT):
+		for i in xrange (0, MAP_WIDTH):
 			if not invalidChoice(i, j):
 				chances[(i, j)] = (g.map[i][j].light_level + 1)**power #do this so they don't get abandoned by orcs and have all 0s
 	
@@ -108,8 +144,8 @@ def rand_tile_darkest():
 
 	poss = []
 
-	for j in range(0, MAP_HEIGHT):
-		for i in range (0, MAP_WIDTH):
+	for j in xrange(0, MAP_HEIGHT):
+		for i in xrange (0, MAP_WIDTH):
 			if g.map[i][j].light_level == LIGHT_MIN and not invalidChoice(i, j):
 				poss.append((i,j))
 
@@ -162,6 +198,18 @@ def is_blocked(x, y):
 			return True
  
 	return False
+
+def is_empty(x, y):
+	#first test the map tile
+	if g.map[x][y].blocked:
+		return False
+ 
+	#now check for any blocking g.objects
+	for object in g.objects:
+		if object.x == x and object.y == y:
+			return False
+ 
+	return True
  
 def blocked_by(x, y):
 	#first test the map tile
@@ -185,6 +233,8 @@ def from_dungeon_level(table):
 
 def from_branch_level(table):
 	#returns a value that depends on level. the table specifies what value occurs after each level, default is 0.
+	if not (g.branch in table.keys()):
+		return 0
 	for (value, level) in reversed(table[g.branch]):
 		if g.dungeon_level >= level:
 			return value
@@ -270,12 +320,12 @@ def BFS(x, y, xt, yt):
 def boundedX(start, stop):
 	bstart = max(start, 0)
 	bstop = min(stop, MAP_WIDTH)
-	return range(bstart, bstop)
+	return xrange(bstart, bstop)
 
 def boundedY(start, stop):
 	bstart = max(start, 0)
 	bstop = min(stop, MAP_HEIGHT)
-	return range(bstart, bstop)
+	return xrange(bstart, bstop)
 
 
 def make_noise(x, y, volume, source = None):
@@ -286,3 +336,46 @@ def make_noise(x, y, volume, source = None):
 				if obj.fighter and obj.ai:
 					obj.ai.hear_noise(x, y, source)
 					#obj.fighter.look_towards = (x, y)
+
+
+def fov_map_update_tile(x, y):
+	libtcod.map_set_properties(g.fov_map, x, y, not g.map[x][y].block_sight, not g.map[x][y].blocked)
+
+
+def has_ortho_neighbor(x, y):
+	is_blocked = lambda x: x.blocked
+
+	return neighbor_check(x, y, is_blocked)
+
+
+def neighbor_check(x, y, func):
+	return func(g.map[x - 1][y]) or \
+		   func(g.map[x + 1][y]) or \
+		   func(g.map[x][y - 1]) or \
+		   func(g.map[x][y + 1])
+
+def num_ortho_neighbors(x, y):
+	count = 0
+	if g.map[x - 1][y].blocked: 
+		count += 1
+	if g.map[x + 1][y].blocked:
+		count += 1
+	if g.map[x][y - 1].blocked:
+		count += 1
+	if g.map[x][y + 1].blocked:
+		count += 1
+
+	return count
+
+def num_diag_neighbors(x, y):
+	count = 0
+	if g.map[x - 1][y - 1].blocked: 
+		count += 1
+	if g.map[x + 1][y - 1].blocked:
+		count += 1
+	if g.map[x - 1][y + 1].blocked:
+		count += 1
+	if g.map[x + 1][y + 1].blocked:
+		count += 1
+
+	return count

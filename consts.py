@@ -39,9 +39,9 @@ MAX_ROOMS = 50
 #NUM_ITEMS = [[5, 1], [10, 5], [15, 7]]
 #NUM_FEATURES = [[10, 1]]
 
-NUM_MONSTERS = {'grounds': [[5, 1], [8, 2], [12, 3], [15, 4], [20, 5]]}
-NUM_ITEMS = {'grounds': [[3, 1], [4, 2], [5, 3], [6, 4], [7, 5]]}
-NUM_FEATURES = {'grounds': [[8, 1], [12, 2], [16, 3], [20, 4], [24, 5]]}
+NUM_MONSTERS = {}
+NUM_ITEMS = {}
+NUM_FEATURES = {}
  
 ################################################################################
 #Vision stuff
@@ -71,6 +71,8 @@ DARK_WALL_COLOR = (0, 0, 30)
 LIGHT_WALL_COLOR = (50, 30, 0)
 DARK_GROUND_COLOR = (20, 20, 40)
 LIGHT_GROUND_COLOR = (60, 60, 80)
+DARK_PLANT_COLOR = (20, 40, 30)
+LIGHT_PLANT_COLOR = (60, 80, 60)
 
 R_FACTOR = 1.5
 B_FACTOR = 0.0
@@ -137,9 +139,7 @@ LARGE_TORCH_LSL = 12
 
 ####Grounds
 
-SMALL_TORCH_CHANCE['grounds'] = [[35, 1], [25, 3], [15, 5]]
-MID_TORCH_CHANCE['grounds'] = [[15, 1], [25, 2], [20, 3], [10, 5]]
-LARGE_TORCH_CHANCE['grounds'] = [[10, 2], [20, 3], [30, 4], [35, 5]]
+
 
 
 
@@ -191,8 +191,6 @@ TROLL_XP = 100
 TROLL_COLOR = libtcod.darker_green
 
 
-ORC_CHANCE['grounds'] = [[35, 1]]#, [25, 3], [15, 5]]
-
 ##Basic guards
 GUARD_CHANCE = {} #[[80, 1]]
 SMALL_TORCH_GUARD_CHANCE = {}
@@ -207,9 +205,19 @@ GUARD_CHAR = 'g'
 SMALL_TORCH_GUARD_LSL = 4
 MID_TORCH_GUARD_LSL = 6
 
-GUARD_CHANCE['grounds'] = [[30, 1]]
-SMALL_TORCH_GUARD_CHANCE['grounds'] = [[30, 1], [25, 3], [15, 5]]
-MID_TORCH_GUARD_CHANCE['grounds'] = [[15, 1], [20, 3], [30, 5]]
+##Glowmoths!
+GLOWMOTH_CHANCE = {} #[[80, 1]]
+GLOWMOTH_HP = 20
+GLOWMOTH_POW = 3
+GLOWMOTH_DEF = 0
+GLOWMOTH_XP = 20
+GLOWMOTH_COLOR = libtcod.light_blue
+GLOWMOTH_CHAR = 'w'
+GLOWMOTH_ORB_TICKTIME = 40
+GLOWMOTH_ORB_LSL = 3
+
+##Screaming flower
+
 
 
 DEAD_GUARD_TORCH_TICK = 10
@@ -224,7 +232,7 @@ DEAD_GUARD_TORCH_TICK = 10
 #spell values
 HEAL_AMOUNT = 40
 
-
+REMEMBER_LEVEL = {}
 
  
 #experience and level-ups
@@ -236,3 +244,45 @@ VISION_DISTANCE_WITHOUT_LIGHT = 4
 
 #VISION STUFF
  
+
+################################################################################
+#Level stuff
+################################################################################
+
+#Grounds
+REMEMBER_LEVEL['grounds'] = True
+NUM_MONSTERS['grounds'] = [[5, 1], [8, 2], [12, 3], [15, 4], [20, 5]]
+NUM_ITEMS['grounds'] = [[3, 1], [4, 2], [5, 3], [6, 4], [7, 5]]
+NUM_FEATURES['grounds'] = [[8, 1], [12, 2], [16, 3], [20, 4], [24, 5]]
+
+GUARD_CHANCE['grounds'] = [[30, 1]]
+SMALL_TORCH_GUARD_CHANCE['grounds'] = [[30, 1], [25, 3], [15, 5]]
+MID_TORCH_GUARD_CHANCE['grounds'] = [[15, 1], [20, 3], [30, 5]]
+
+SMALL_TORCH_CHANCE['grounds'] = [[35, 1], [25, 3], [15, 5]]
+MID_TORCH_CHANCE['grounds'] = [[15, 1], [25, 2], [20, 3], [10, 5]]
+LARGE_TORCH_CHANCE['grounds'] = [[10, 2], [20, 3], [30, 4], [35, 5]]
+
+
+#Gardens
+REMEMBER_LEVEL['gardens'] = False
+NUM_MONSTERS['gardens'] = [[10, 1], [14, 2], [18, 3], [22, 4], [25, 5]]
+NUM_ITEMS['gardens'] = [[3, 1], [4, 2], [5, 3], [6, 4], [7, 5]]
+NUM_FEATURES['gardens'] = [[120, 1]] #This gets ignored currently
+
+GUARD_CHANCE['gardens'] = [[30, 1]]
+SMALL_TORCH_GUARD_CHANCE['gardens'] = [[0, 1]]
+MID_TORCH_GUARD_CHANCE['gardens'] = [[0, 1]]
+GLOWMOTH_CHANCE['gardens'] = [[5, 1]]
+
+SMALL_TORCH_CHANCE['gardens'] = [[35, 1], [25, 3], [15, 5]]
+MID_TORCH_CHANCE['gardens'] = [[0, 1]]
+LARGE_TORCH_CHANCE['gardens'] = [[0, 1]]
+
+NUM_GARDEN_DIRECTORS = 60
+GARDEN_DIR_MIN = 10
+GARDEN_DIR_MAX = 30
+GARDEN_DIR_MIN_SPEED = 10
+GARDEN_DIR_MAX_SPEED = 40
+
+GARDEN_TORCH_FREQ = 8

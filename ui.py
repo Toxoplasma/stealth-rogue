@@ -54,7 +54,7 @@ def render_all():
 			visible = LOS and ((g.map[x][y].light_level > MIN_TILE_LIGHT_LEVEL) or (u.pythdist(x, y, g.player.x, g.player.y) < VISION_DISTANCE_WITHOUT_LIGHT))
 			if not visible:
 				#if it's not visible right now, the player can only see it if it's explored
-				if g.map[x][y].explored:
+				if REMEMBER_LEVEL[g.branch] and g.map[x][y].explored:
 					(rc, gc, bc) = g.map[x][y].dark_color
 					colormap[x][y][0] += rc
 					colormap[x][y][1] += gc
@@ -77,6 +77,8 @@ def render_all():
 				#since it's visible, mark it as explored
 				g.map[x][y].explored = True
 
+
+	coneMarkedMap = [[False for y in range(0, MAP_HEIGHT)] for x in range(0, MAP_WIDTH)]
 	#Go through units, add vision cones
 	for obj in g.objects:
 		if obj.fighter and obj.ai and visibleMap[obj.x][obj.y]:
@@ -84,10 +86,11 @@ def render_all():
 				for x in u.boundedX(obj.x - VISION_CONE_DISPLAY_DIST, obj.x + VISION_CONE_DISPLAY_DIST + 1):
 					for y in u.boundedY(obj.y - VISION_CONE_DISPLAY_DIST, obj.y + VISION_CONE_DISPLAY_DIST + 1):
 						if u.pythdist(obj.x, obj.y, x, y) <= VISION_CONE_DISPLAY_DIST:
-							if obj.fighter.in_vision_cone(x, y) and visibleMap[x][y]:
+							if obj.fighter.in_vision_cone(x, y) and visibleMap[x][y] and not coneMarkedMap[x][y]:
 								colormap[x][y][0] += VISION_CONE_RED
 								colormap[x][y][1] += VISION_CONE_GREEN
 								colormap[x][y][2] += VISION_CONE_BLUE
+								coneMarkedMap[x][y] = True
 
 	for y in range(MAP_HEIGHT):
 		for x in range(MAP_WIDTH):

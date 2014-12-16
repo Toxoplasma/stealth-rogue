@@ -2,8 +2,10 @@
 
 class Tile:
 	#a tile of the map and its properties
-	def __init__(self, blocked, dark_color, light_color, block_sight = None):
+	def __init__(self, blocked, tiletype, dark_color, light_color, block_sight = None):
 		self.blocked = blocked
+
+		self.tiletype = tiletype
  
 		#all tiles start unexplored
 		self.explored = False

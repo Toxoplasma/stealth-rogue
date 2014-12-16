@@ -148,12 +148,12 @@ def handle_keys():
 				if chosen_item is not None:
 					chosen_item.drop()
  
-			if key_char == 'c':
-				#show character information
-				level_up_xp = LEVEL_UP_BASE + player.level * LEVEL_UP_FACTOR
-				msgbox('Character Information\n\nLevel: ' + str(player.level) + '\nExperience: ' + str(player.fighter.xp) +
-					   '\nExperience to level up: ' + str(level_up_xp) + '\n\nMaximum HP: ' + str(player.fighter.max_hp) +
-					   '\nAttack: ' + str(player.fighter.power) + '\nDefense: ' + str(player.fighter.defense), CHARACTER_SCREEN_WIDTH)
+			# if key_char == 'c':
+			# 	#show character information
+			# 	level_up_xp = LEVEL_UP_BASE + player.level * LEVEL_UP_FACTOR
+			# 	msgbox('Character Information\n\nLevel: ' + str(player.level) + '\nExperience: ' + str(player.fighter.xp) +
+			# 		   '\nExperience to level up: ' + str(level_up_xp) + '\n\nMaximum HP: ' + str(player.fighter.max_hp) +
+			# 		   '\nAttack: ' + str(player.fighter.power) + '\nDefense: ' + str(player.fighter.defense), CHARACTER_SCREEN_WIDTH)
  
 			if key_char == '>':
 				#go down stairs, if the player is on them
@@ -388,7 +388,7 @@ def next_level():
 	#player.fighter.heal(player.fighter.max_hp / 2)  #heal the player by 50%
  
 	g.dungeon_level += 1
-	g.branch = 'grounds'
+	g.branch = 'gardens'
 
 	#Reset the movement queue to just the player
 	g.q = [(g.player, g.time + 1)]
@@ -399,16 +399,16 @@ def next_level():
 			qinsert(item, time + 2)
 
 	#maps.make_map()  #create a fresh new level!
-	maps.make_grounds()
+	maps.make_map()
 	v.initialize_fov()
 
 
 ##Main game
 def play_game():
 	#Give all monsters a free step to compute their destinations
-	for unit in g.objects:
-		if unit.ai:
-			unit.ai.take_turn()
+	# for unit in g.objects:
+	# 	if unit.ai:
+	# 		unit.ai.take_turn()
 			
 	player_action = None
 

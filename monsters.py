@@ -10,12 +10,13 @@ from consts import *
 
 ##Ais
 class BasicMonster:
-	def __init__(self, destFunc, lostPlayerFunc):
+	def __init__(self, destFunc, lostPlayerFunc = None, eachStepFunc = None): #ADD EACH STEP FUNC
 		self.can_see_player = False
 		self.state = 'waiting'
 		self.waitTicks = 0
 		self.destFunc = destFunc
 		self.lostPlayerFunc = lostPlayerFunc
+		self.eachStepFunc = eachStepFunc
 		#self.dest = (-1, -1) #(self.owner.x, self.owner.y)
 
 	#AI for a basic monster.
@@ -42,7 +43,8 @@ class BasicMonster:
 			self.can_see_player = False
 
 			print "  Shouting, looking at " + str(monster.fighter.look_towards)
-			self.lostPlayerFunc(monster)
+			if self.lostPlayerFunc:
+				self.lostPlayerFunc(monster)
 			
 
 		#If we're next to the player, attack it
@@ -69,7 +71,12 @@ class BasicMonster:
 				oldx = monster.x
 				oldy = monster.y
 
+				#Do the onstep whatever it is
+				if self.eachStepFunc:
+					self.eachStepFunc(monster)
+
 				actiontime = monster.move_towards(monster.fighter.look_towards[0], monster.fighter.look_towards[1])
+
 
 				#If we fail to move there, set desination to -1, -1 to pick a new one eventually
 				if not actiontime:
@@ -104,6 +111,47 @@ class BasicMonster:
 		else: #Just heard a noise, go check it out
 			print monster.name + " heard noise, heading towards " + str((x, y)) 
 			monster.fighter.look_towards = (x, y)
+
+
+class WanderMonster:
+	def __init__(self, destFunc, eachStepFunc = None):
+		self.can_see_player = False
+		self.destFunc = destFunc
+		self.eachStepFunc = eachStepFunc
+
+		self.dest = (-1, -1)
+
+		self.look_towards = (-1, -1) #don't want to show facing on these guys
+
+	def take_turn(self):
+		monster = self.owner
+
+		actiontime = 0
+			
+		oldx = monster.x
+		oldy = monster.y
+
+		#Do the onstep whatever it is
+		if self.eachStepFunc:
+			self.eachStepFunc(monster)
+
+		actiontime = monster.move_towards(self.dest[0], self.dest[1])
+
+		#If we fail to move there, set desination to -1, -1 to pick a new one eventually
+		if not actiontime:
+			self.dest = (-1, -1)
+			actiontime = 10 #give them a turn rest
+
+		#Have we arrived at dest?
+		if self.dest == (-1, -1) or (monster.x, monster.y) == self.dest:
+			#Something has gone wrong, immediately move towards new position
+			newx, newy = self.destFunc(monster.x, monster.y)
+			self.dest = (newx, newy)
+
+		return actiontime
+
+	def hear_noise(self, x, y, source):
+		return
 
 class ConfusedMonster:
 	#AI for a temporarily confused monster (reverts to previous AI after a while).
@@ -244,6 +292,20 @@ def shout(monster, vol):
 	ui.message("Hey you!")
 	#if not ui.in_sight_message("'Hey you! Stop right there!'")
 
+def glowmothDropLightOrb(monster):
+	orb_ai = item.LightDarkOrb(GLOWMOTH_ORB_TICKTIME)
+	l = object.Light(GLOWMOTH_ORB_LSL)
+	lit_orb = object.Object(monster.x, monster.y, ' ', 'glow dust', LIGHT_ORB_THROWN_COLOR, 
+			light = l, ai = orb_ai)
+	v.add_light(lit_orb)
+
+	g.objects.append(lit_orb)
+	lit_orb.send_to_back()
+
+	u.qinsert(lit_orb, g.time + GLOWMOTH_ORB_TICKTIME)
+
+	g.fov_recompute = True
+
 
 #chance of each monster
 def spawn_monsters():
@@ -256,6 +318,8 @@ def spawn_monsters():
 	monster_chances['guard'] = u.from_branch_level(GUARD_CHANCE)
 	monster_chances['small torch guard'] = u.from_branch_level(SMALL_TORCH_GUARD_CHANCE)
 	monster_chances['mid torch guard'] = u.from_branch_level(MID_TORCH_GUARD_CHANCE)
+	monster_chances['glowmoth'] = u.from_branch_level(GLOWMOTH_CHANCE)
+
 
 	#choose random number of monsters
 	target_num_monsters = u.from_branch_level(NUM_MONSTERS)
@@ -274,6 +338,9 @@ def spawn_monsters():
 				make_small_torch_guard(x, y)
 			elif choice == 'mid torch guard':
 				make_mid_torch_guard(x, y)
+
+			elif choice == 'glowmoth':
+				make_glowmoth(x, y)
 
 	return num_monsters
 
@@ -344,6 +411,13 @@ def make_guard(x, y):
 
 	add_monster(monster)
 
+def make_glowmoth(x, y):
+	fighter_component = object.Fighter(hp=GUARD_HP, defense=GUARD_DEF, power=GUARD_POW, xp=GUARD_XP, death_function=monster_death)
+	ai_component = WanderMonster(destFunc = u.rand_tile_in_sight, eachStepFunc = glowmothDropLightOrb)
+	monster = object.Object(x, y, GLOWMOTH_CHAR, 'glowmoth', GLOWMOTH_COLOR,
+					 blocks=True, fighter=fighter_component, ai=ai_component)
+
+	add_monster(monster)
 
 def add_monster(monster):
 	v.add_light(monster)

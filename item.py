@@ -466,3 +466,13 @@ def cast_speed():
 	u.qinsert(speed_obj, g.time + SPEED_TICK_TIME)
 
 	ui.message("You feel lightning fast!")
+
+
+
+def spawn_small_torch(x, y):
+	l = object.Light(SMALL_TORCH_LSL)
+	feat = object.Object(x, y, '!', 'small torch', TORCH_COLOR, light=l)
+
+	v.add_light(feat)
+	g.objects.append(feat)
+	feat.send_to_back()  #items appear below other g.objects
